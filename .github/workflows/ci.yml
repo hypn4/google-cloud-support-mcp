@@ -41,3 +41,12 @@ jobs:
         # Integration tests are deselected by pyproject's addopts; they need
         # live Google Cloud Support credentials and would create real cases.
         run: uv run pytest -q
+
+      - name: Server loads through the FastMCP CLI
+        # Constitution principle VI, and the one check the test suite cannot
+        # make: the tests import the package directly, while the CLI loads
+        # server.py by path with no parent package. A relative import added to
+        # that file passes every test above and breaks `fastmcp inspect`, `run`
+        # and `dev` — which is exactly how this went unnoticed until it was
+        # found by hand.
+        run: uv run fastmcp inspect
