@@ -1,4 +1,4 @@
-# cloud-support-mcp
+# google-cloud-support-mcp
 
 An MCP server for Google Cloud Support. Read and act on support cases across
 every project and organization you have access to, without leaving the
@@ -51,7 +51,7 @@ prompts (`triage_open_cases`, `draft_case_from_incident`).
 Nothing to clone or install — `uvx` fetches the published package and runs it:
 
 ```bash
-uvx cloud-support-mcp
+uvx google-cloud-support-mcp
 ```
 
 Register it with an MCP client:
@@ -59,37 +59,37 @@ Register it with an MCP client:
 ```json
 {
   "mcpServers": {
-    "cloud-support": {
+    "google-cloud-support": {
       "command": "uvx",
-      "args": ["cloud-support-mcp"],
+      "args": ["google-cloud-support-mcp"],
       "env": {
-        "CLOUD_SUPPORT_MCP_PARENTS": "[\"projects/my-project\",\"organizations/123456789\"]",
-        "CLOUD_SUPPORT_MCP_QUOTA_PROJECT": "my-project"
+        "GOOGLE_CLOUD_SUPPORT_MCP_PARENTS": "[\"projects/my-project\",\"organizations/123456789\"]",
+        "GOOGLE_CLOUD_SUPPORT_MCP_QUOTA_PROJECT": "my-project"
       }
     }
   }
 }
 ```
 
-Pin a release with `uvx cloud-support-mcp@0.1.0` if you would rather not track
+Pin a release with `uvx google-cloud-support-mcp@0.1.0` if you would rather not track
 the latest.
 
 ### From a clone
 
 ```bash
 uv sync
-uv run cloud-support-mcp        # stdio
+uv run google-cloud-support-mcp        # stdio
 ```
 
 ```json
 {
   "mcpServers": {
-    "cloud-support": {
+    "google-cloud-support": {
       "command": "uv",
-      "args": ["run", "--directory", "/path/to/cloud-support-mcp", "cloud-support-mcp"],
+      "args": ["run", "--directory", "/path/to/google-cloud-support-mcp", "google-cloud-support-mcp"],
       "env": {
-        "CLOUD_SUPPORT_MCP_PARENTS": "[\"projects/my-project\",\"organizations/123456789\"]",
-        "CLOUD_SUPPORT_MCP_QUOTA_PROJECT": "my-project"
+        "GOOGLE_CLOUD_SUPPORT_MCP_PARENTS": "[\"projects/my-project\",\"organizations/123456789\"]",
+        "GOOGLE_CLOUD_SUPPORT_MCP_QUOTA_PROJECT": "my-project"
       }
     }
   }
@@ -98,7 +98,7 @@ uv run cloud-support-mcp        # stdio
 
 ## Configuration
 
-All variables take the `CLOUD_SUPPORT_MCP_` prefix.
+All variables take the `GOOGLE_CLOUD_SUPPORT_MCP_` prefix.
 
 | Variable | Default | What it does |
 |----------|---------|--------------|
@@ -120,7 +120,7 @@ byte-for-byte what you were shown — a `confirm: true` parameter could not do
 this, because the model would be the one filling it in.
 
 **Escalation is off by default.** It is delivered to Google's support
-organisation and a person acts on it. Set `CLOUD_SUPPORT_MCP_ENABLE_ESCALATION=true`
+organisation and a person acts on it. Set `GOOGLE_CLOUD_SUPPORT_MCP_ENABLE_ESCALATION=true`
 to expose the tool; it still requires a written justification and your
 confirmation.
 
@@ -159,7 +159,7 @@ accidental release from the wrong commit cannot reach the index.
 
 The pipeline runs lint and tests, builds the sdist and wheel, asserts the built
 version really is the tag (a checkout that cannot see the tag would quietly
-produce `0.0.0`), checks the wheel actually exposes the `cloud-support-mcp`
+produce `0.0.0`), checks the wheel actually exposes the `google-cloud-support-mcp`
 console script (otherwise `uvx` would break for everyone), publishes to PyPI, and
 creates a GitHub release with the artifacts attached.
 
@@ -203,7 +203,7 @@ publisher with:
 
 | Field | Value |
 |-------|-------|
-| PyPI project name | `cloud-support-mcp` |
+| PyPI project name | `google-cloud-support-mcp` |
 | Owner | your GitHub user or org |
 | Repository name | this repository |
 | Workflow name | `release.yml` |
@@ -216,8 +216,8 @@ you require a manual approval before anything is published.
 Integration tests are double-gated on purpose:
 
 ```bash
-export CLOUD_SUPPORT_MCP_IT_PARENT=projects/my-test-project   # read-only tests
-export CLOUD_SUPPORT_MCP_IT_ALLOW_WRITES=1                    # also the writing ones
+export GOOGLE_CLOUD_SUPPORT_MCP_IT_PARENT=projects/my-test-project   # read-only tests
+export GOOGLE_CLOUD_SUPPORT_MCP_IT_ALLOW_WRITES=1                    # also the writing ones
 ```
 
 Writing tests always pass `test_case=True`, which keeps the case out of a support

@@ -15,8 +15,8 @@ import pytest
 from google.cloud.support_v2.types import actor, attachment, case, comment
 from google.protobuf import timestamp_pb2
 
-from cloud_support_mcp.clients import SupportClients
-from cloud_support_mcp.settings import Settings
+from google_cloud_support_mcp.clients import SupportClients
+from google_cloud_support_mcp.settings import Settings
 
 TS = timestamp_pb2.Timestamp(seconds=1_800_000_000)
 
@@ -175,7 +175,7 @@ def fake_clients() -> SupportClients:
 @pytest.fixture(autouse=True)
 def _reset_classification_cache():
     """The catalogue is cached per process; tests must not inherit each other's."""
-    from cloud_support_mcp.tools import classifications
+    from google_cloud_support_mcp.tools import classifications
 
     classifications._catalog_cache = None
     yield
@@ -190,7 +190,7 @@ def settings() -> Settings:
 @pytest.fixture
 def make_server(fake_clients):
     """Build a server with mocks; override settings per test."""
-    from cloud_support_mcp.server import build_server
+    from google_cloud_support_mcp.server import build_server
 
     def _build(**overrides):
         return build_server(

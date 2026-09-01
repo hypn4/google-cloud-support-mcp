@@ -20,7 +20,7 @@ _PARENT = re.compile(r"^(projects|organizations)/[A-Za-z0-9][A-Za-z0-9\-_.]*$")
 
 class Settings(BaseSettings):
     model_config = SettingsConfigDict(
-        env_prefix="CLOUD_SUPPORT_MCP_",
+        env_prefix="GOOGLE_CLOUD_SUPPORT_MCP_",
         env_file=".env",
         extra="ignore",
     )

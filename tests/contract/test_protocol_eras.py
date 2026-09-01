@@ -8,7 +8,7 @@ from __future__ import annotations
 
 from fastmcp.server.context import MODERN_PROTOCOL_VERSIONS
 
-from cloud_support_mcp.confirm import _is_modern
+from google_cloud_support_mcp.confirm import _is_modern
 
 
 class _Ctx:

@@ -9,7 +9,7 @@ import httpx
 import pytest
 from google.api_core import exceptions as gexc
 
-from cloud_support_mcp.errors import ErrorKind, from_grpc, from_http, to_tool_error
+from google_cloud_support_mcp.errors import ErrorKind, from_grpc, from_http, to_tool_error
 
 PLAN_403 = "The caller does not have a Google Cloud support plan for this resource."
 PERM_403 = "Permission 'cloudsupport.cases.list' denied on resource."

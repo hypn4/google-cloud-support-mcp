@@ -6,7 +6,7 @@ customer support data, so scrubbing is not optional.
 
 import logging
 
-from cloud_support_mcp.redaction import REDACTED, RedactionFilter, redact
+from google_cloud_support_mcp.redaction import REDACTED, RedactionFilter, redact
 
 SECRET_BODY = "Our API key AKIA-EXAMPLE stopped working at 02:00"
 
@@ -33,9 +33,9 @@ class TestRedact:
 
 
 def test_logging_filter_scrubs_records(caplog):
-    logger = logging.getLogger("cloud_support_mcp.test")
+    logger = logging.getLogger("google_cloud_support_mcp.test")
     logger.addFilter(RedactionFilter())
-    with caplog.at_level(logging.DEBUG, logger="cloud_support_mcp.test"):
+    with caplog.at_level(logging.DEBUG, logger="google_cloud_support_mcp.test"):
         logger.info("case payload: %s", {"body": SECRET_BODY})
     text = "\n".join(r.getMessage() for r in caplog.records)
     assert SECRET_BODY not in text
@@ -44,7 +44,7 @@ def test_logging_filter_scrubs_records(caplog):
 
 async def test_middleware_does_not_mutate_the_request():
     """Scrubbing what a tool receives would post "[redacted]" to Google Support."""
-    from cloud_support_mcp.redaction import RedactionMiddleware
+    from google_cloud_support_mcp.redaction import RedactionMiddleware
 
     class Message:
         def __init__(self) -> None:

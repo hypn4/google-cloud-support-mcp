@@ -165,7 +165,7 @@ MCP 서버의 계약은 곧 도구·리소스·프롬프트 표면이다. 이 �
 **출력**: `CaseDetail | InputRequiredResult`
 
 **계약 요점**: 이 서버에서 가장 날카로운 도구다.
-- `CLOUD_SUPPORT_MCP_ENABLE_ESCALATION=true` 없이는 등록조차 되지 않는다 (FR-018).
+- `GOOGLE_CLOUD_SUPPORT_MCP_ENABLE_ESCALATION=true` 없이는 등록조차 되지 않는다 (FR-018).
 - 미리보기에 **Google 지원 조직에 실제 전달되는 조치임을 명시**한다 (spec US3 AS-3).
 - `justification`이 선택이 아니라 필수인 것은 spec US3 AS-3이 "사유 입력과 명시적 확인을 모두" 요구하기 때문이다.
 

@@ -157,7 +157,7 @@ parent가 N개면 그중 하나는 권한 없음, 다른 하나는 유료 지원
 
 **지원 플랜**: Standard / Enhanced / Premium 중 하나가 필요하다(문서 확인). 미가입 조직은 조회조차 실패하며, 권한 오류와 **구분해서** 안내해야 한다(FR-021, spec Edge Case).
 
-**quota project**: 사용자 ADC로 조직 수준 리소스를 호출할 때 조직은 quota/billing 컨테이너가 아니므로 `x-goog-user-project`(= quota project)가 필요하다. `CLOUD_SUPPORT_MCP_QUOTA_PROJECT` 설정으로 노출하고, 미설정 상태에서 관련 오류가 나면 `gcloud auth application-default set-quota-project <ID>`를 안내한다. *구현 시 실제 조직 호출로 재확인할 것.*
+**quota project**: 사용자 ADC로 조직 수준 리소스를 호출할 때 조직은 quota/billing 컨테이너가 아니므로 `x-goog-user-project`(= quota project)가 필요하다. `GOOGLE_CLOUD_SUPPORT_MCP_QUOTA_PROJECT` 설정으로 노출하고, 미설정 상태에서 관련 오류가 나면 `gcloud auth application-default set-quota-project <ID>`를 안내한다. *구현 시 실제 조직 호출로 재확인할 것.*
 
 ---
 
@@ -266,7 +266,7 @@ R-002의 SDK/REST 간극 때문에 이 서버는 트랜스포트가 둘이고, �
 
 1. **Unit** — 오류 매핑 표, 복합 커서 인코딩/디코딩(라운드트립 및 위조 입력), 콘솔 URL 생성, proto→pydantic 직렬화. 네트워크 없음.
 2. **Contract** — FastMCP 인메모리 `Client(mcp)`로 도구 목록·입력/출력 스키마·`annotations`·태그 게이팅을 검증하고, GAPIC 클라이언트는 목으로 대체. **확인 흐름 2라운드**(라운드1이 `InputRequiredResult` 반환, `decline` 시 상류 호출 0회 — FR-017)와 **팬아웃 부분 실패**(한 parent가 403이어도 나머지 결과 반환)가 여기 핵심이다.
-3. **Integration** — 실제 프로젝트 대상. `CLOUD_SUPPORT_MCP_IT_PARENT` 환경변수가 있을 때만 실행되며 기본 skip. 쓰기 검증은 `test_case=True`로 한정한다.
+3. **Integration** — 실제 프로젝트 대상. `GOOGLE_CLOUD_SUPPORT_MCP_IT_PARENT` 환경변수가 있을 때만 실행되며 기본 skip. 쓰기 검증은 `test_case=True`로 한정한다.
 
 **Alternatives considered**: 실제 gRPC를 VCR로 녹화 — 지원 케이스 본문에 고객 데이터가 섞일 위험이 있어(FR-022) 기각. 목 + 계약 테스트로 충분하다.
 
@@ -297,7 +297,7 @@ R-002의 SDK/REST 간극 때문에 이 서버는 트랜스포트가 둘이고, �
 
 | # | 항목 | 현재 상태 | 구현에 반영된 것 |
 |---|------|-----------|------------------|
-| 1 | quota project 실제 필요 조건 | **부분 해소** (2026-09-01 실 호출) — 프로젝트 스코프에서는 **불필요**했다. ADC 파일의 `quota_project_id`를 google-auth가 자동으로 쓰기 때문이다. 조직 스코프는 접근 가능한 조직이 없어 미확인 | `CLOUD_SUPPORT_MCP_QUOTA_PROJECT` 설정이 있고, `auth.py`가 `with_quota_project()`와 `x-goog-user-project` 헤더를 모두 적용한다. 필요 여부와 무관하게 동작한다 |
+| 1 | quota project 실제 필요 조건 | **부분 해소** (2026-09-01 실 호출) — 프로젝트 스코프에서는 **불필요**했다. ADC 파일의 `quota_project_id`를 google-auth가 자동으로 쓰기 때문이다. 조직 스코프는 접근 가능한 조직이 없어 미확인 | `GOOGLE_CLOUD_SUPPORT_MCP_QUOTA_PROJECT` 설정이 있고, `auth.py`가 `with_quota_project()`와 `x-goog-user-project` 헤더를 모두 적용한다. 필요 여부와 무관하게 동작한다 |
 | 2 | 지원 플랜 미가입의 메시지 시그니처 | **해소** (2026-09-01 실 호출) — 403이 아니라 **`FailedPrecondition`(400) + `not eligible ... with this channel`** 이었다. 덤으로 403의 세 번째 원인(API 미활성)도 발견해 분류를 추가했다 | `errors.py`가 `support plan`·`support account`·`not entitled`·`no entitlement` 네 시그니처로 분기하고, **매칭 실패 시 `permission_denied`로 폴백하되 그 안내문이 지원 플랜 확인도 함께 지시한다.** 시그니처가 틀려도 사용자는 두 가능성을 모두 안내받는다 |
 | 3 | 첨부 업로드 크기 상한 | **미해소** — 실측하려면 케이스가 필요한데, 검증 프로젝트가 지원 플랜 미가입이라 생성이 막힌다 | `MAX_UPLOAD_BYTES` 기본 10MB로 사전 검증. 서버가 더 큰 값을 허용하면 설정으로 올리면 되고, 거부하면 그 오류가 정규화되어 전달된다 |
 | 4 | 업로드 `uploadType` | **미해소** — 항목 3과 같은 이유. `?uploadType=multipart`로 구현했으나 실 호출 미검증 | `media.py`가 `?uploadType=multipart` + 멀티파트 본문(메타데이터 JSON + 파일)으로 구현. 실패 시 Metadata URI 선행 생성 폴백을 검토한다 |

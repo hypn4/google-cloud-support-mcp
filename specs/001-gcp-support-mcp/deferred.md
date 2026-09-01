@@ -36,7 +36,7 @@ gcloud auth application-default set-quota-project PROJECT_ID
 Then set the scope for everything below:
 
 ```bash
-export CLOUD_SUPPORT_MCP_PARENTS='["projects/PROJECT_ID"]'
+export GOOGLE_CLOUD_SUPPORT_MCP_PARENTS='["projects/PROJECT_ID"]'
 ```
 
 ---
@@ -52,7 +52,7 @@ export CLOUD_SUPPORT_MCP_PARENTS='["projects/PROJECT_ID"]'
    `media.upload` documents the URI and the request body but never mentions
    `uploadType`, so the current implementation is an informed guess.
 
-**What the code already does** — `src/cloud_support_mcp/media.py`,
+**What the code already does** — `src/google_cloud_support_mcp/media.py`,
 `upload_attachment_file()`:
 
 ```
@@ -68,8 +68,8 @@ explicit and the body form is what is implemented.
 **How to verify.**
 
 ```bash
-export CLOUD_SUPPORT_MCP_IT_PARENT=projects/PROJECT_ID
-export CLOUD_SUPPORT_MCP_IT_ALLOW_WRITES=1
+export GOOGLE_CLOUD_SUPPORT_MCP_IT_PARENT=projects/PROJECT_ID
+export GOOGLE_CLOUD_SUPPORT_MCP_IT_ALLOW_WRITES=1
 uv run pytest tests/integration/test_lifecycle_journey.py -v -m integration
 ```
 
@@ -90,11 +90,11 @@ to the two-step form.
 
 **To find the size limit**: upload files at 1 MB, 10 MB, 50 MB, 100 MB and note
 where the server rejects. Then set `max_upload_bytes` in
-`src/cloud_support_mcp/settings.py` just under it.
+`src/google_cloud_support_mcp/settings.py` just under it.
 
 **Files to update when resolved**
-- `src/cloud_support_mcp/media.py` — the upload call, if the protocol differs
-- `src/cloud_support_mcp/settings.py` — `max_upload_bytes` default
+- `src/google_cloud_support_mcp/media.py` — the upload call, if the protocol differs
+- `src/google_cloud_support_mcp/settings.py` — `max_upload_bytes` default
 - `specs/001-gcp-support-mcp/research.md` — R-002 and open items 3 and 4
 - `tests/contract/test_lifecycle_and_media.py` — add a regression test for
   whatever the real protocol turns out to be
@@ -122,7 +122,7 @@ unset. The tool's message names the variable and shows the JSON shape, which is
 the part worth watching:
 
 ```
-No scopes are configured. Set CLOUD_SUPPORT_MCP_PARENTS to a JSON list
+No scopes are configured. Set GOOGLE_CLOUD_SUPPORT_MCP_PARENTS to a JSON list
 such as ["projects/my-project","organizations/123456789"], or pass `parents`
 on this call.
 ```
@@ -133,7 +133,7 @@ those messages actually land is exactly what this measurement tests.
 
 **Files to update when resolved**
 - `README.md` — every question the tester asked out loud
-- `src/cloud_support_mcp/errors.py` — any guidance text that did not land
+- `src/google_cloud_support_mcp/errors.py` — any guidance text that did not land
 - `specs/001-gcp-support-mcp/quickstart.md` — V9's result
 
 ---
@@ -158,8 +158,8 @@ round trip (V4) and the attachment cycle (V5).
 **How to verify the rest.**
 
 ```bash
-export CLOUD_SUPPORT_MCP_PARENTS='["projects/PROJECT_ID"]'
-uv run fastmcp inspect src/cloud_support_mcp/server.py   # V1 again, sanity
+export GOOGLE_CLOUD_SUPPORT_MCP_PARENTS='["projects/PROJECT_ID"]'
+uv run fastmcp inspect src/google_cloud_support_mcp/server.py   # V1 again, sanity
 # then walk V4 steps 1-7 and V5 in quickstart.md through an MCP client
 ```
 

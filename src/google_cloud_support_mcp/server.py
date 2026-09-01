@@ -31,7 +31,7 @@ __all__ = ["build_server", "create_server"]
 # raises PackageNotFoundError, gets caught, and every client is told the version
 # is UNKNOWN_VERSION. Nothing crashes. A contract test asserts the pair still
 # agree — see tests/contract/test_tool_inventory.py.
-DISTRIBUTION_NAME = "cloud-support-mcp"
+DISTRIBUTION_NAME = "google-cloud-support-mcp"
 
 # Returned when the package is not installed, e.g. running straight from a
 # source tree. Named so tests can distinguish "not installed" from "installed
@@ -63,10 +63,10 @@ attributes, closing, or uploading — you will be asked to confirm the exact pay
 Declining changes nothing.
 
 Escalation is disabled by default because it reaches Google's support organisation
-directly; set CLOUD_SUPPORT_MCP_ENABLE_ESCALATION=true to expose it. Setting
-CLOUD_SUPPORT_MCP_ENABLE_WRITES=false leaves only the read tools.
+directly; set GOOGLE_CLOUD_SUPPORT_MCP_ENABLE_ESCALATION=true to expose it. Setting
+GOOGLE_CLOUD_SUPPORT_MCP_ENABLE_WRITES=false leaves only the read tools.
 
-Configure scopes with CLOUD_SUPPORT_MCP_PARENTS, e.g.
+Configure scopes with GOOGLE_CLOUD_SUPPORT_MCP_PARENTS, e.g.
 ["projects/my-project","organizations/123456789"].
 """
 
@@ -111,10 +111,10 @@ def build_server(
     contract tests can run against mocks without touching credentials.
     """
     settings = settings or get_settings()
-    install_log_redaction("cloud_support_mcp")
+    install_log_redaction("google_cloud_support_mcp")
 
     mcp = FastMCP(
-        name="cloud-support",
+        name="google-cloud-support",
         version=_package_version(),
         instructions=INSTRUCTIONS,
         # Only ToolError text reaches a client, so anything that skips the error

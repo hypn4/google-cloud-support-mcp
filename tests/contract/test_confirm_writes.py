@@ -12,7 +12,7 @@ from fastmcp.client import Client
 from fastmcp.client.elicitation import ElicitResult
 from mcp.shared.exceptions import MCPError
 
-from cloud_support_mcp.settings import Settings
+from google_cloud_support_mcp.settings import Settings
 
 CREATE_ARGS = {
     "parent": "projects/p",
@@ -27,7 +27,7 @@ CREATE_ARGS = {
 def _classified_server(fake_clients, **settings_kw):
     from google.cloud.support_v2.types import case
 
-    from cloud_support_mcp.server import build_server
+    from google_cloud_support_mcp.server import build_server
 
     fake_clients.cases.classifications = [
         case.CaseClassification(id="100H", display_name="Compute/GKE")
@@ -106,7 +106,7 @@ class TestClassificationValidation:
 
 class TestAddCommentConfirmation:
     async def test_body_is_sent_verbatim_after_approval(self, fake_clients):
-        from cloud_support_mcp.server import build_server
+        from google_cloud_support_mcp.server import build_server
 
         body = "Attaching the node describe output; DiskPressure since 02:00 UTC."
         server = build_server(Settings(parents=["projects/p"]), clients=fake_clients)
@@ -118,7 +118,7 @@ class TestAddCommentConfirmation:
         assert calls[0][1].comment.body == body
 
     async def test_declining_posts_nothing(self, fake_clients):
-        from cloud_support_mcp.server import build_server
+        from google_cloud_support_mcp.server import build_server
 
         server = build_server(Settings(parents=["projects/p"]), clients=fake_clients)
         async with Client(server, elicitation_handler=await _handler(False)) as client:
@@ -129,7 +129,7 @@ class TestAddCommentConfirmation:
         assert not [c for c in fake_clients.comments.calls if c[0] == "create_comment"]
 
     async def test_body_over_the_proto_limit_is_rejected_before_asking(self, fake_clients):
-        from cloud_support_mcp.server import build_server
+        from google_cloud_support_mcp.server import build_server
 
         server = build_server(Settings(parents=["projects/p"]), clients=fake_clients)
         async with Client(server) as client:

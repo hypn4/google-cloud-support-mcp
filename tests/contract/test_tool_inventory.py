@@ -9,9 +9,9 @@ from __future__ import annotations
 import pytest
 from fastmcp.client import Client
 
-from cloud_support_mcp.clients import SupportClients
-from cloud_support_mcp.server import build_server
-from cloud_support_mcp.settings import Settings
+from google_cloud_support_mcp.clients import SupportClients
+from google_cloud_support_mcp.server import build_server
+from google_cloud_support_mcp.settings import Settings
 
 READ = {
     "search_cases",
@@ -95,7 +95,7 @@ async def test_server_reports_its_own_version_not_fastmcp_s():
     """serverInfo.version must identify this release, not the framework's."""
     from importlib.metadata import version
 
-    from cloud_support_mcp.server import _package_version
+    from google_cloud_support_mcp.server import _package_version
 
     ours = _package_version()
     assert ours != version("fastmcp"), "FastMCP 버전이 우리 버전으로 보고되고 있다"
@@ -111,7 +111,7 @@ def test_distribution_name_still_resolves():
     """
     from importlib.metadata import PackageNotFoundError, distribution
 
-    from cloud_support_mcp.server import DISTRIBUTION_NAME, UNKNOWN_VERSION, _package_version
+    from google_cloud_support_mcp.server import DISTRIBUTION_NAME, UNKNOWN_VERSION, _package_version
 
     try:
         distribution(DISTRIBUTION_NAME)

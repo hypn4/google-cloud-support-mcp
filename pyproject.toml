@@ -1,5 +1,5 @@
 [project]
-name = "cloud-support-mcp"
+name = "google-cloud-support-mcp"
 dynamic = ["version"]
 description = "MCP server for Google Cloud Support - cases, comments, attachments, classifications across projects and organizations"
 readme = "README.md"
@@ -18,7 +18,7 @@ dependencies = [
 ]
 
 [project.scripts]
-cloud-support-mcp = "cloud_support_mcp:main"
+google-cloud-support-mcp = "google_cloud_support_mcp:main"
 
 [dependency-groups]
 dev = [
@@ -43,7 +43,7 @@ build-backend = "hatchling.build"
 source = "uv-dynamic-versioning"
 
 [tool.hatch.build.targets.wheel]
-packages = ["src/cloud_support_mcp"]
+packages = ["src/google_cloud_support_mcp"]
 
 [tool.uv-dynamic-versioning]
 vcs = "git"
@@ -63,12 +63,12 @@ select = ["E", "F", "I", "UP", "B", "SIM", "RUF"]
 ignore = ["E501"]
 
 [tool.ruff.lint.isort]
-known-first-party = ["cloud_support_mcp"]
+known-first-party = ["google_cloud_support_mcp"]
 
 [tool.pytest.ini_options]
 asyncio_mode = "auto"
 testpaths = ["tests"]
 markers = [
-    "integration: hits the real Google Cloud Support API (requires CLOUD_SUPPORT_MCP_IT_PARENT)",
+    "integration: hits the real Google Cloud Support API (requires GOOGLE_CLOUD_SUPPORT_MCP_IT_PARENT)",
 ]
 addopts = "-m 'not integration'"

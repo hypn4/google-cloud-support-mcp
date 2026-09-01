@@ -30,28 +30,28 @@ uv sync
 uv run pytest tests/unit tests/contract    # 네트워크 불필요 — 여기서 먼저 통과해야 한다
 ```
 
-**설정** (환경변수, 접두사 `CLOUD_SUPPORT_MCP_`). 전체 항목은 [data-model.md](./data-model.md)의 Configuration 표 참조.
+**설정** (환경변수, 접두사 `GOOGLE_CLOUD_SUPPORT_MCP_`). 전체 항목은 [data-model.md](./data-model.md)의 Configuration 표 참조.
 
 ```bash
-export CLOUD_SUPPORT_MCP_PARENTS='["projects/my-project","organizations/123456789"]'
-export CLOUD_SUPPORT_MCP_QUOTA_PROJECT=my-project
+export GOOGLE_CLOUD_SUPPORT_MCP_PARENTS='["projects/my-project","organizations/123456789"]'
+export GOOGLE_CLOUD_SUPPORT_MCP_QUOTA_PROJECT=my-project
 ```
 
 **실행**:
 ```bash
-uv run cloud-support-mcp          # stdio (기본)
+uv run google-cloud-support-mcp          # stdio (기본)
 ```
 
 **MCP 클라이언트 등록**:
 ```json
 {
   "mcpServers": {
-    "cloud-support": {
+    "google-cloud-support": {
       "command": "uv",
-      "args": ["run", "--directory", "/path/to/cloud-support-mcp", "cloud-support-mcp"],
+      "args": ["run", "--directory", "/path/to/google-cloud-support-mcp", "google-cloud-support-mcp"],
       "env": {
-        "CLOUD_SUPPORT_MCP_PARENTS": "[\"projects/my-project\"]",
-        "CLOUD_SUPPORT_MCP_QUOTA_PROJECT": "my-project"
+        "GOOGLE_CLOUD_SUPPORT_MCP_PARENTS": "[\"projects/my-project\"]",
+        "GOOGLE_CLOUD_SUPPORT_MCP_QUOTA_PROJECT": "my-project"
       }
     }
   }
@@ -76,7 +76,7 @@ uv run cloud-support-mcp          # stdio (기본)
 ### V1 — 도구 표면 (계약)
 
 ```bash
-uv run fastmcp inspect src/cloud_support_mcp/server.py
+uv run fastmcp inspect src/google_cloud_support_mcp/server.py
 ```
 
 **기대**:
@@ -86,10 +86,10 @@ uv run fastmcp inspect src/cloud_support_mcp/server.py
 - 리소스 템플릿 `case://{parent}/{case_id}` 1개, 프롬프트 2개.
 
 ```bash
-CLOUD_SUPPORT_MCP_ENABLE_ESCALATION=true uv run fastmcp inspect src/cloud_support_mcp/server.py
+GOOGLE_CLOUD_SUPPORT_MCP_ENABLE_ESCALATION=true uv run fastmcp inspect src/google_cloud_support_mcp/server.py
 # → 14개 도구, escalate_case에 destructiveHint: true
 
-CLOUD_SUPPORT_MCP_ENABLE_WRITES=false uv run fastmcp inspect src/cloud_support_mcp/server.py
+GOOGLE_CLOUD_SUPPORT_MCP_ENABLE_WRITES=false uv run fastmcp inspect src/google_cloud_support_mcp/server.py
 # → 8개 도구 (읽기만)
 ```
 
@@ -115,7 +115,7 @@ MCP Inspector 또는 어시스턴트에서:
 접근 권한이 **있는** parent와 **없는** parent를 함께 설정한다:
 
 ```bash
-export CLOUD_SUPPORT_MCP_PARENTS='["projects/my-project","organizations/999999999"]'
+export GOOGLE_CLOUD_SUPPORT_MCP_PARENTS='["projects/my-project","organizations/999999999"]'
 ```
 
 `search_cases` 호출 →
@@ -187,7 +187,7 @@ export CLOUD_SUPPORT_MCP_PARENTS='["projects/my-project","organizations/99999999
 ### V7 — 데이터 유출 방지 (FR-022)
 
 ```bash
-FASTMCP_LOG_LEVEL=DEBUG uv run cloud-support-mcp 2> server.log
+FASTMCP_LOG_LEVEL=DEBUG uv run google-cloud-support-mcp 2> server.log
 # V2·V4 시나리오 수행 후:
 grep -iE "<케이스 본문 일부>|<코멘트 본문 일부>" server.log   # 매치 0건이어야 한다
 ```
@@ -222,17 +222,17 @@ grep -iE "<케이스 본문 일부>|<코멘트 본문 일부>" server.log   # �
 
 ```bash
 # 읽기 전용 통합 테스트만
-export CLOUD_SUPPORT_MCP_IT_PARENT=projects/my-test-project
+export GOOGLE_CLOUD_SUPPORT_MCP_IT_PARENT=projects/my-test-project
 uv run pytest tests/integration -v
 
 # 쓰기 통합 테스트까지 (실제 케이스가 생성된다 — 의도적으로만)
-export CLOUD_SUPPORT_MCP_IT_ALLOW_WRITES=1
+export GOOGLE_CLOUD_SUPPORT_MCP_IT_ALLOW_WRITES=1
 uv run pytest tests/integration -v
 ```
 
-`CLOUD_SUPPORT_MCP_IT_ALLOW_WRITES`가 없으면 쓰기 통합 테스트는 **전부 skip된다.** 이중 게이트는 "통합 테스트를 켰더니 케이스가 생겼다"를 막기 위한 것이다.
+`GOOGLE_CLOUD_SUPPORT_MCP_IT_ALLOW_WRITES`가 없으면 쓰기 통합 테스트는 **전부 skip된다.** 이중 게이트는 "통합 테스트를 켰더니 케이스가 생겼다"를 막기 위한 것이다.
 
-`CLOUD_SUPPORT_MCP_IT_PARENT`가 없으면 통합 테스트 전부가 skip된다. 쓰기 테스트는 `CLOUD_SUPPORT_MCP_IT_ALLOW_WRITES=1`을 추가로 요구하며, 실행 시 `test_case=True`를 쓰고 만든 케이스를 종료해 정리한다 — 다만 **정리해도 레코드 자체는 남는다.**
+`GOOGLE_CLOUD_SUPPORT_MCP_IT_PARENT`가 없으면 통합 테스트 전부가 skip된다. 쓰기 테스트는 `GOOGLE_CLOUD_SUPPORT_MCP_IT_ALLOW_WRITES=1`을 추가로 요구하며, 실행 시 `test_case=True`를 쓰고 만든 케이스를 종료해 정리한다 — 다만 **정리해도 레코드 자체는 남는다.**
 
 ---
 

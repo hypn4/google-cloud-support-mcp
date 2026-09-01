@@ -3,8 +3,8 @@
 from google.cloud.support_v2.types import actor, attachment, case, comment
 from google.protobuf import timestamp_pb2
 
-from cloud_support_mcp.models import CasePriority, CaseState
-from cloud_support_mcp.serializers import (
+from google_cloud_support_mcp.models import CasePriority, CaseState
+from google_cloud_support_mcp.serializers import (
     parse_resource_ref,
     to_attachment,
     to_case_detail,

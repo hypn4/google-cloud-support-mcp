@@ -4,7 +4,7 @@ from __future__ import annotations
 
 from fastmcp.client import Client
 
-from cloud_support_mcp.serializers import parse_resource_ref
+from google_cloud_support_mcp.serializers import parse_resource_ref
 
 from ..conftest import make_case
 
@@ -21,8 +21,8 @@ async def test_summaries_and_details_carry_a_link(fake_clients, mcp_server):
 
 async def test_an_unparseable_name_does_not_fail_the_call(fake_clients):
     """A link we cannot build must not take the lookup down with it."""
-    from cloud_support_mcp.server import build_server
-    from cloud_support_mcp.settings import Settings
+    from google_cloud_support_mcp.server import build_server
+    from google_cloud_support_mcp.settings import Settings
 
     fake_clients.cases.cases = [make_case(name="totally/unexpected/shape")]
     server = build_server(Settings(parents=["projects/p"]), clients=fake_clients)

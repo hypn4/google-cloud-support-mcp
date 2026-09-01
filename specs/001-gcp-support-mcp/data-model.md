@@ -224,7 +224,7 @@ spec의 **Case Classification** 엔티티.
 
 ## Configuration
 
-`pydantic-settings`, 접두사 `CLOUD_SUPPORT_MCP_`. 8개 항목.
+`pydantic-settings`, 접두사 `GOOGLE_CLOUD_SUPPORT_MCP_`. 8개 항목.
 
 | 설정 | 타입 | 기본값 | 근거 |
 |------|------|--------|------|

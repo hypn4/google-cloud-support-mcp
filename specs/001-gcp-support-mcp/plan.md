@@ -70,7 +70,7 @@ Google Cloud Support API v2의 **케이스·코멘트·첨부·분류 표면(13�
 |------|------|-----------|
 | **I. Ground Data Only** (NON-NEGOTIABLE) | **PASS** | research.md의 각 결정이 검증 방법을 명시한다 — 휠 직접 해제 후 `gapic_metadata.json`·proto 파싱, 공식 문서 `.md.txt` 원문 확인. 요약본이 원문과 어긋난 **3건을 기록하고 원문을 채택**했다: v2beta가 `OR`로 여러 조직을 검색한다는 오해(R-004), 첨부 업로드 파일명이 쿼리 파라미터라는 오해(R-002), `plain_text_body`가 사용 가능하다는 오해(R-008). 미해결 4건은 research.md 말미에 설계 영향과 함께 기록되어 있다 |
 | **II. Code Conventions** | **PASS** | 강제 수단과 실행 게이트를 모두 갖췄다 — T006이 ruff 설정 후 `ruff check`·`ruff format --check` **통과를 확인**하고, T085가 최종 게이트에서 다시 확인하며, tasks.md Notes가 **커밋 전 통과**와 **소스 `TODO`의 과제 ID 참조**를 규칙으로 명시한다. 출력은 임시 `dict`가 아니라 data-model.md에 선언된 pydantic 모델(T012·T013)이다. 소스가 아직 빈 `__init__.py` 하나뿐이므로 실효 검증은 구현 단계에서 이뤄진다 |
-| **III. Test-First** (NON-NEGOTIABLE) | **PASS** | tasks.md의 세 스토리 모두 테스트 블록이 구현 블록보다 **앞에** 있고, 각 블록 머리에 "먼저 작성하고 실패를 확인한 뒤 구현한다"가 명시되어 있다. contracts/tools.md의 계약 테스트 19항목이 전부 과제로 인용된다. 네트워크 테스트는 `integration` 마커로 기본 제외(T007)되고 `CLOUD_SUPPORT_MCP_IT_PARENT`로만 활성화된다. 외부 부작용은 벤더 테스트 모드(`test_case=True`)로 한정된다 |
+| **III. Test-First** (NON-NEGOTIABLE) | **PASS** | tasks.md의 세 스토리 모두 테스트 블록이 구현 블록보다 **앞에** 있고, 각 블록 머리에 "먼저 작성하고 실패를 확인한 뒤 구현한다"가 명시되어 있다. contracts/tools.md의 계약 테스트 19항목이 전부 과제로 인용된다. 네트워크 테스트는 `integration` 마커로 기본 제외(T007)되고 `GOOGLE_CLOUD_SUPPORT_MCP_IT_PARENT`로만 활성화된다. 외부 부작용은 벤더 테스트 모드(`test_case=True`)로 한정된다 |
 | **IV. Latest Spec First** | **PASS** | **런타임 의존성 4개 전부 정확한 값으로 고정**되고(`fastmcp==4.0.0`, `google-cloud-support==0.5.3`, `httpx==0.28.1`, `pydantic-settings==2.15.0`), dev 의존성 4개도 마찬가지다. 확인 시점(2026-09-01, PyPI)이 Technical Context와 T003·T004에 기록되어 있다. **T001이 구현 착수 전 레지스트리 재확인을 수행한다** — 기억에 의존하지 않는다. MCP `2026-07-28`은 공식 문서 트리의 최신 리비전이다. **v2beta 미채택이 이 원칙에 부합한다** — 원칙 IV는 베타 채택에 고유 능력의 정당화를 요구하는데, R-004가 v2beta에 고유 능력이 없음(cross-org 미해결)을 확인했다 |
 | **V. No Deprecated Surfaces** (NON-NEGOTIABLE) | **PASS** | v2 proto **전수 검사** 결과 deprecated 표시 필드는 `Comment.plain_text_body`(`Output only. DEPRECATED. DO NOT USE.`) **하나뿐**이며, data-model.md가 이를 명시적으로 배제한다. FastMCP 4의 deprecated 항목도 어느 것도 쓰지 않는다 — `import_server()` 대신 명시적 등록, SSE 전송 대신 stdio/HTTP, `Client("server.py")` 문자열 추론 대신 인메모리 `Client(mcp)`. **T002가 신규 의존성 6종의 사용 예정 표면을 점검**하고 결과를 research.md에 기록한다 |
 
@@ -97,9 +97,9 @@ specs/001-gcp-support-mcp/
 ### Source Code (repository root)
 
 ```text
-src/cloud_support_mcp/
+src/google_cloud_support_mcp/
 ├── __init__.py              # main() 진입점 (pyproject의 console script)
-├── __main__.py              # python -m cloud_support_mcp
+├── __main__.py              # python -m google_cloud_support_mcp
 ├── settings.py              # pydantic-settings: parents, 기능 토글, 다운로드 경로, quota project
 ├── server.py                # FastMCP 인스턴스 조립: lifespan, 미들웨어, 태그 게이팅, 등록 호출
 ├── auth.py                  # google.auth.default(), 스코프, quota project 헤더, 토큰 갱신
@@ -124,7 +124,7 @@ tests/
 ├── conftest.py              # 목 GAPIC 클라이언트, 인메모리 FastMCP Client 픽스처
 ├── unit/                    # 오류 매핑, 커서 라운드트립/위조, URL 생성, 직렬화
 ├── contract/                # 도구 목록·스키마·annotations·태그 게이팅, 확인 2라운드, 팬아웃 부분 실패
-└── integration/             # 실제 API (CLOUD_SUPPORT_MCP_IT_PARENT 있을 때만)
+└── integration/             # 실제 API (GOOGLE_CLOUD_SUPPORT_MCP_IT_PARENT 있을 때만)
 ```
 
 **Structure Decision**: 단일 Python 패키지. 도메인별 `tools/*.py` 모듈이 각각 `register(mcp)`를 노출하고 `server.py`가 명시적으로 호출한다. FastMCP 4가 모듈 분할용으로 제시하는 `FileSystemProvider`(디렉터리 런타임 스캔)는 채택하지 않았다 — 이 프로젝트는 임의 경로에 설치되어 실행되는 배포 패키지라 경로 스캔이 취약하고, 명시적 등록이 동일한 분리 효과를 결정적으로 준다(R-006).
