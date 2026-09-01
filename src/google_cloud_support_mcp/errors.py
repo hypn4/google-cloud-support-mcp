@@ -63,7 +63,7 @@ _GUIDANCE: dict[ErrorKind, tuple[str, bool]] = {
         "No such resource. Check the name format: cases are "
         "'projects/{project}/cases/{id}' or 'organizations/{org}/cases/{id}'. "
         "Also confirm the case lives under a parent you configured in "
-        "CLOUD_SUPPORT_MCP_PARENTS.",
+        "GOOGLE_CLOUD_SUPPORT_MCP_PARENTS.",
         False,
     ),
     ErrorKind.INVALID_ARGUMENT: (
@@ -80,7 +80,7 @@ _GUIDANCE: dict[ErrorKind, tuple[str, bool]] = {
     ),
     ErrorKind.RATE_LIMITED: (
         "Google is rate limiting these requests. Wait a few seconds and retry. If it "
-        "persists, lower CLOUD_SUPPORT_MCP_FANOUT_CONCURRENCY so fewer scopes are "
+        "persists, lower GOOGLE_CLOUD_SUPPORT_MCP_FANOUT_CONCURRENCY so fewer scopes are "
         "queried at once.",
         True,
     ),

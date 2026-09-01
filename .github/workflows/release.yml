@@ -121,15 +121,16 @@ jobs:
 
       - name: Smoke-test the wheel
         # Catches the packaging failure that matters most here. A wheel that
-        # installs but does not expose the `cloud-support-mcp` console script
-        # breaks `uvx cloud-support-mcp` for every user, and nothing in the test
-        # suite would notice — the tests import the package directly.
+        # installs but does not expose the `google-cloud-support-mcp` console
+        # script breaks `uvx google-cloud-support-mcp` for every user, and
+        # nothing in the test suite would notice — the tests import the package
+        # directly.
         run: |
           uv venv /tmp/smoke
           VIRTUAL_ENV=/tmp/smoke uv pip install dist/*.whl
-          test -x /tmp/smoke/bin/cloud-support-mcp \
+          test -x /tmp/smoke/bin/google-cloud-support-mcp \
             || { echo "::error::console script missing from the wheel"; exit 1; }
-          /tmp/smoke/bin/python -c "import cloud_support_mcp as m; assert callable(m.main)"
+          /tmp/smoke/bin/python -c "import google_cloud_support_mcp as m; assert callable(m.main)"
           echo "console script and entry point present"
 
       - uses: actions/upload-artifact@v7
@@ -146,7 +147,7 @@ jobs:
     # Lets you require a manual approval, or restrict which tags may publish.
     environment:
       name: pypi
-      url: https://pypi.org/p/cloud-support-mcp
+      url: https://pypi.org/p/google-cloud-support-mcp
     permissions:
       # Trusted Publishing and Sigstore both need this: GitHub mints a
       # short-lived OIDC token, PyPI verifies it against a publisher you
@@ -248,13 +249,13 @@ jobs:
             Run it without cloning anything:
 
             ```bash
-            uvx cloud-support-mcp
+            uvx google-cloud-support-mcp
             ```
 
             Or pin this exact release:
 
             ```bash
-            uvx cloud-support-mcp@${{ needs.verify.outputs.released }}
+            uvx google-cloud-support-mcp@${{ needs.verify.outputs.released }}
             ```
 
             MCP client configuration:
@@ -262,12 +263,12 @@ jobs:
             ```json
             {
               "mcpServers": {
-                "cloud-support": {
+                "google-cloud-support": {
                   "command": "uvx",
-                  "args": ["cloud-support-mcp"],
+                  "args": ["google-cloud-support-mcp"],
                   "env": {
-                    "CLOUD_SUPPORT_MCP_PARENTS": "[\"projects/my-project\"]",
-                    "CLOUD_SUPPORT_MCP_QUOTA_PROJECT": "my-project"
+                    "GOOGLE_CLOUD_SUPPORT_MCP_PARENTS": "[\"projects/my-project\"]",
+                    "GOOGLE_CLOUD_SUPPORT_MCP_QUOTA_PROJECT": "my-project"
                   }
                 }
               }

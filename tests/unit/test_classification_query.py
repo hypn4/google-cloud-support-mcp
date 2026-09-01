@@ -7,7 +7,7 @@ a substring glob is useful. Verified against the real service on 2026-09-01.
 
 import pytest
 
-from cloud_support_mcp.tools.classifications import build_classification_query
+from google_cloud_support_mcp.tools.classifications import build_classification_query
 
 
 @pytest.mark.parametrize(

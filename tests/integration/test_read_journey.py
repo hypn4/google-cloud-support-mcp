@@ -5,8 +5,8 @@ from __future__ import annotations
 import pytest
 from fastmcp.client import Client
 
-from cloud_support_mcp.server import build_server
-from cloud_support_mcp.settings import Settings
+from google_cloud_support_mcp.server import build_server
+from google_cloud_support_mcp.settings import Settings
 
 from .conftest import requires_api
 

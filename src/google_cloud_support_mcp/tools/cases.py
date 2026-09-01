@@ -71,7 +71,7 @@ def register(mcp: FastMCP, settings: Settings, get_clients) -> None:
     async def search_cases(
         parents: Annotated[
             list[str] | None,
-            Field(description="Scopes to search; defaults to CLOUD_SUPPORT_MCP_PARENTS"),
+            Field(description="Scopes to search; defaults to GOOGLE_CLOUD_SUPPORT_MCP_PARENTS"),
         ] = None,
         state: Annotated[
             CaseStateFilter | None,
@@ -104,7 +104,7 @@ def register(mcp: FastMCP, settings: Settings, get_clients) -> None:
                 from_grpc(ValueError("no parents configured")).model_copy(
                     update={
                         "detail": (
-                            "No scopes are configured. Set CLOUD_SUPPORT_MCP_PARENTS to a JSON "
+                            "No scopes are configured. Set GOOGLE_CLOUD_SUPPORT_MCP_PARENTS to a JSON "
                             'list such as ["projects/my-project","organizations/123456789"], '
                             "or pass `parents` on this call."
                         )

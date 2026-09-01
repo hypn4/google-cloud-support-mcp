@@ -10,7 +10,7 @@ from fastmcp.client.elicitation import ElicitResult
 from google.api_core import exceptions as gexc
 from mcp.shared.exceptions import MCPError
 
-from cloud_support_mcp.settings import Settings
+from google_cloud_support_mcp.settings import Settings
 
 CASE = "projects/p/cases/1"
 
@@ -20,7 +20,7 @@ async def _approve(message, response_type, params, ctx):
 
 
 def _server(fake_clients, **kw):
-    from cloud_support_mcp.server import build_server
+    from google_cloud_support_mcp.server import build_server
 
     return build_server(Settings(parents=["projects/p"], **kw), clients=fake_clients)
 

@@ -10,8 +10,8 @@ import pytest
 from fastmcp.client import Client
 from fastmcp.client.elicitation import ElicitResult
 
-from cloud_support_mcp.server import build_server
-from cloud_support_mcp.settings import Settings
+from google_cloud_support_mcp.server import build_server
+from google_cloud_support_mcp.settings import Settings
 
 from .conftest import requires_write_optin
 
@@ -42,7 +42,7 @@ async def test_update_attach_download_then_close(server, it_parent, tmp_path):
                     "parent": it_parent,
                     "classification_id": classes["items"][0]["id"],
                     "title": "[automated test] lifecycle, please ignore",
-                    "description": "Created by the cloud-support-mcp integration suite.",
+                    "description": "Created by the google-cloud-support-mcp integration suite.",
                     "priority": "P4",
                     "test_case": True,
                 },

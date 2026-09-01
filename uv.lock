@@ -266,40 +266,6 @@ wheels = [
 ]
 
 [[package]]
-name = "cloud-support-mcp"
-source = { editable = "." }
-dependencies = [
-    { name = "fastmcp" },
-    { name = "google-cloud-support" },
-    { name = "httpx" },
-    { name = "pydantic-settings" },
-]
-
-[package.dev-dependencies]
-dev = [
-    { name = "pytest" },
-    { name = "pytest-asyncio" },
-    { name = "respx" },
-    { name = "ruff" },
-]
-
-[package.metadata]
-requires-dist = [
-    { name = "fastmcp", specifier = "==4.0.0" },
-    { name = "google-cloud-support", specifier = "==0.5.3" },
-    { name = "httpx", specifier = "==0.28.1" },
-    { name = "pydantic-settings", specifier = "==2.15.0" },
-]
-
-[package.metadata.requires-dev]
-dev = [
-    { name = "pytest", specifier = "==9.1.1" },
-    { name = "pytest-asyncio", specifier = "==1.4.0" },
-    { name = "respx", specifier = "==0.23.1" },
-    { name = "ruff", specifier = "==0.16.5" },
-]
-
-[[package]]
 name = "colorama"
 version = "0.4.6"
 source = { registry = "https://pypi.org/simple" }
@@ -526,6 +492,40 @@ dependencies = [
 sdist = { url = "https://files.pythonhosted.org/packages/58/ed/4718410fdba2aab7ac5aa759cb0f4deada09f0db47a659b763f274142ab1/google_cloud_support-0.5.3.tar.gz", hash = "sha256:fc8adbf8f237d8c38f12eaf3ad6f2c1ebf269e4d14ef07c8d917c34e5c62a323", size = 457868, upload-time = "2026-08-25T19:19:06.946Z" }
 wheels = [
     { url = "https://files.pythonhosted.org/packages/87/6c/69c0bf3e7e09296ce5a264d90dc4fc209ac3e4958b4268ddcf43388ac9ca/google_cloud_support-0.5.3-py3-none-any.whl", hash = "sha256:cc66764a7c8f4871bd1c69bc52cdd602347d3f261fd0e1f483c5abf35c454b0d", size = 445628, upload-time = "2026-08-25T19:18:00.864Z" },
+]
+
+[[package]]
+name = "google-cloud-support-mcp"
+source = { editable = "." }
+dependencies = [
+    { name = "fastmcp" },
+    { name = "google-cloud-support" },
+    { name = "httpx" },
+    { name = "pydantic-settings" },
+]
+
+[package.dev-dependencies]
+dev = [
+    { name = "pytest" },
+    { name = "pytest-asyncio" },
+    { name = "respx" },
+    { name = "ruff" },
+]
+
+[package.metadata]
+requires-dist = [
+    { name = "fastmcp", specifier = "==4.0.0" },
+    { name = "google-cloud-support", specifier = "==0.5.3" },
+    { name = "httpx", specifier = "==0.28.1" },
+    { name = "pydantic-settings", specifier = "==2.15.0" },
+]
+
+[package.metadata.requires-dev]
+dev = [
+    { name = "pytest", specifier = "==9.1.1" },
+    { name = "pytest-asyncio", specifier = "==1.4.0" },
+    { name = "respx", specifier = "==0.23.1" },
+    { name = "ruff", specifier = "==0.16.5" },
 ]
 
 [[package]]

@@ -4,8 +4,8 @@ import pytest
 from fastmcp.client import Client
 from google.api_core import exceptions as gexc
 
-from cloud_support_mcp.fanout import decode_cursor
-from cloud_support_mcp.settings import Settings
+from google_cloud_support_mcp.fanout import decode_cursor
+from google_cloud_support_mcp.settings import Settings
 
 READ_TOOLS = {
     "search_cases",
@@ -74,7 +74,7 @@ class TestFanoutPartialFailure:
     """R-004b: one denied scope must not hide the scopes that worked."""
 
     async def test_one_denied_parent_still_returns_others(self, fake_clients):
-        from cloud_support_mcp.server import build_server
+        from google_cloud_support_mcp.server import build_server
 
         fake_clients.cases.errors_by_parent = {
             "organizations/9": gexc.PermissionDenied("Permission denied on resource.")
@@ -94,7 +94,7 @@ class TestFanoutPartialFailure:
         assert set(data["scopes_queried"]) == {"projects/p", "organizations/9", "projects/q"}
 
     async def test_support_plan_403_is_classified_separately(self, fake_clients):
-        from cloud_support_mcp.server import build_server
+        from google_cloud_support_mcp.server import build_server
 
         fake_clients.cases.errors_by_parent = {
             "projects/q": gexc.PermissionDenied("The caller has no Google Cloud support plan.")
@@ -107,7 +107,7 @@ class TestFanoutPartialFailure:
 
 class TestPagination:
     async def test_cursor_is_issued_when_more_remains(self, fake_clients):
-        from cloud_support_mcp.server import build_server
+        from google_cloud_support_mcp.server import build_server
 
         class Paged(type(fake_clients.cases)):
             pass
@@ -131,8 +131,8 @@ class TestPagination:
         }
 
     async def test_cursor_from_a_different_parent_set_is_rejected(self, fake_clients):
-        from cloud_support_mcp.fanout import encode_cursor
-        from cloud_support_mcp.server import build_server
+        from google_cloud_support_mcp.fanout import encode_cursor
+        from google_cloud_support_mcp.server import build_server
 
         stale = encode_cursor({"projects/other": "tok"})
         server = build_server(Settings(parents=["projects/p"]), clients=fake_clients)

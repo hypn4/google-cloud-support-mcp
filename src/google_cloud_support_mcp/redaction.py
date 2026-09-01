@@ -77,7 +77,7 @@ class RedactionMiddleware(Middleware):
     """
 
     def __init__(self, logger: logging.Logger | None = None) -> None:
-        self._logger = logger or logging.getLogger("cloud_support_mcp.calls")
+        self._logger = logger or logging.getLogger("google_cloud_support_mcp.calls")
 
     async def on_call_tool(self, context: MiddlewareContext, call_next):
         message = getattr(context, "message", None)

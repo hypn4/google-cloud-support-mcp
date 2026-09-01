@@ -136,7 +136,7 @@ def register(mcp: FastMCP, settings: Settings, get_clients) -> None:
                 custom(
                     ErrorKind.INVALID_ARGUMENT,
                     f"'{source.name}' is {size:,} bytes, which exceeds the configured limit of "
-                    f"{settings.max_upload_bytes:,} (CLOUD_SUPPORT_MCP_MAX_UPLOAD_BYTES). "
+                    f"{settings.max_upload_bytes:,} (GOOGLE_CLOUD_SUPPORT_MCP_MAX_UPLOAD_BYTES). "
                     "Nothing was sent.",
                 )
             )

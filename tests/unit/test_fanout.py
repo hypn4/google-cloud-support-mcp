@@ -5,8 +5,8 @@ import asyncio
 import pytest
 from google.api_core import exceptions as gexc
 
-from cloud_support_mcp.errors import ErrorKind
-from cloud_support_mcp.fanout import (
+from google_cloud_support_mcp.errors import ErrorKind
+from google_cloud_support_mcp.fanout import (
     CursorError,
     decode_cursor,
     encode_cursor,
