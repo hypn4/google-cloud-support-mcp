@@ -1,43 +1,47 @@
 <!--
 Sync Impact Report
 ==================
-Version change: (none) → 1.0.0
-Rationale: 초기 제정(initial ratification). 이전 파일은 치환되지 않은 템플릿 플레이스홀더만
-           담고 있었으므로 개정이 아니라 최초 채택으로 처리한다.
+Version change: 1.0.0 → 1.1.0
+Rationale: 원칙 추가(MINOR). 기존 원칙의 의미를 바꾸거나 제거하지 않았다.
 
-Principles defined (5):
-  - I.   Ground Data Only (NON-NEGOTIABLE)   [신규]
-  - II.  Code Conventions                     [신규]
-  - III. Test-First (NON-NEGOTIABLE)          [신규]
-  - IV.  Latest Spec First                    [신규]
-  - V.   No Deprecated Surfaces (NON-NEGOTIABLE) [신규]
+Principles:
+  - I.   Ground Data Only (NON-NEGOTIABLE)        [변경 없음]
+  - II.  Code Conventions                          [변경 없음]
+  - III. Test-First (NON-NEGOTIABLE)               [변경 없음]
+  - IV.  Latest Spec First                         [변경 없음]
+  - V.   No Deprecated Surfaces (NON-NEGOTIABLE)   [변경 없음]
+  - VI.  Framework-Idiomatic Layout                [신규]
 
-Sections added:
-  - Technology & Verification Standards (SECTION_2)
-  - Development Workflow & Quality Gates (SECTION_3)
-  - Governance
+Sections modified:
+  - Technology & Verification Standards — "프레임워크 진입점 구조" 항목 추가
+  - 문서 제목 — 프로젝트 개명(cloud-support-mcp → google-cloud-support-mcp) 반영
 
-Sections removed: (none)
+Sections removed: (없음)
 
 Authoring note:
-  사용자 입력은 4개 항목이었다 — "코드컨벤션 및 ground data only, 테스트 우선,
-  최신 스펙 먼저 반영, deprecated 금지". 첫 항목의 두 요소를 원칙 I과 II로 분리해 5개로
-  구성했다. 근거: 두 요소는 준수 여부를 서로 다른 방식으로 확인하므로(원칙 I은 출처 추적,
-  원칙 II는 도구 실행), 한 원칙에 묶으면 "준수했는가"가 모호해진다. 4개로 되돌리려면
-  원칙 I과 II를 병합하고 MINOR 버전을 올리면 된다.
+  사용자 입력은 "fastmcp의 권장패턴 디렉터리 구조를 지키도록 추가해" 한 항목이었다.
+  이를 표준 섹션의 항목이 아니라 원칙으로 올린 근거: 준수 여부가 명령 한 줄로 판정되고
+  (`uv run fastmcp inspect`가 인자 없이 성공하는가), 위반 시 프레임워크 진단 도구 전체가
+  사용 불능이 되므로 다른 원칙과 같은 층위의 구속력이 필요하다.
 
-Compliance status at ratification:
-  기존 산출물(spec.md, plan.md, research.md, data-model.md, contracts/tools.md,
-  quickstart.md, tasks.md) 전수 점검 결과 위반 0건.
-  - 원칙 V 검증: v2 proto 전체에서 deprecated 표시된 필드는 `Comment.plain_text_body`
-    하나뿐이며, data-model.md는 이를 "쓰지 않는다"고 명시한다.
-  - 원칙 IV 검증: fastmcp 4.0.0, google-cloud-support 0.5.3, MCP 2026-07-28 모두
-    현재 최신 안정 버전. v2beta 미채택은 원칙 IV에 부합한다(안정 버전 우선).
+  원칙 VI는 원칙 II(주변 코드의 관습을 따른다)에 대한 명시적 예외를 하나 만든다 —
+  진입 파일만 절대 import를 쓴다. 예외를 원칙 안에 적어 두지 않으면 이후 누군가 "일관성"을
+  이유로 되돌리고 진단 도구가 다시 죽는다. 실제로 그 상태로 릴리스 직전까지 왔었다.
+
+Compliance status at amendment (1차 출처로 확인, 원칙 I):
+  - 진입점 로더 동작: `.venv/.../fastmcp/utilities/mcp_server_config/v1/sources/filesystem.py`
+    소스 확인 — `load_server()`가 `_import_module()`을 항상 먼저 실행하고, 이는
+    `spec_from_file_location("server_module", path)`로 패키지 소속 없이 로드한다.
+    fastmcp 4.0.0의 소스 타입은 `filesystem` 하나뿐이다(`sources/` 디렉터리 전수 확인).
+  - 권장 구조: gofastmcp.com/cli/running 및 /deployment/server-configuration 원문 —
+    `source.path` + `source.entrypoint`, 팩토리 함수는 `file.py:create_server`로 명시.
+  - 현행 저장소 준수 여부: `fastmcp.json` 존재, `uv run fastmcp inspect` 인자 없이 성공
+    (도구 13개), wheel에 `fastmcp.json` 미포함 확인. 위반 0건.
 
 Follow-up TODOs: 없음
 -->
 
-# Cloud Support MCP Constitution
+# Google Cloud Support MCP Constitution
 
 ## Core Principles
 
@@ -115,6 +119,28 @@ Follow-up TODOs: 없음
 **Rationale**: deprecated 표면은 예고 없이 사라지거나 조용히 동작이 바뀐다. 채택 시점에
 비용이 0인 회피가, 나중에는 마이그레이션이 된다.
 
+### VI. Framework-Idiomatic Layout (프레임워크 권장 구조)
+
+프레임워크가 자기 도구로 프로젝트를 로드할 수 있어야 한다. 로드하지 못하면 그 도구가 제공하는
+진단은 존재하지 않는 것과 같다.
+
+- MCP 서버의 진입점은 프레임워크 CLI가 **경로로 단독 로드할 수 있어야 한다**(MUST).
+  판정 기준은 하나다 — `uv run fastmcp inspect`가 **인자 없이 성공해야 한다**.
+- 진입점은 저장소 루트의 `fastmcp.json`에 **선언해야 한다**(MUST) — `source.path`와
+  `source.entrypoint`. 팩토리 함수는 이름을 명시하며 자동 탐색에 **의존하지 않는다**(MUST NOT):
+  자동 탐색은 `mcp`/`server`/`app` 이름의 **인스턴스만** 받아들이고 팩토리는 호출하지 않는다.
+- 진입 파일은 **상대 import를 쓰지 않는다**(MUST NOT). 프레임워크가 그 파일을 패키지 소속 없이
+  로드하므로 상대 import는 즉시 실패한다. 나머지 패키지 모듈은 상대 import를 유지한다 —
+  이 예외는 **진입 파일 안에 근거 주석으로 남겨야 한다**(MUST). 원칙 II(주변 관습을 따른다)에
+  대한 의도된 예외이며, 근거가 적혀 있지 않으면 다음 사람이 일관성을 이유로 되돌린다.
+- 개발용 설정 파일은 **배포 산출물에 포함하지 않는다**(MUST NOT). wheel 내용물로 확인한다.
+- 프레임워크가 권장 구조나 로더 동작을 바꾸면 원칙 IV에 따라 **업그레이드 시점에 재확인해야
+  한다**(MUST). 구조는 프레임워크 버전에 종속된 사실이지 영구 규약이 아니다.
+
+**Rationale**: 이 원칙이 없어서 `quickstart.md`의 V1 검증 명령이 작성된 날부터 한 번도 동작하지
+않았고, 릴리스 파이프라인이 커밋될 때까지 아무도 몰랐다. 테스트는 패키지를 직접 import하므로
+이 결함을 잡지 못한다 — 프레임워크 경로 로드는 테스트가 지나가지 않는 유일한 경로였다.
+
 ## Technology & Verification Standards
 
 - **런타임**: Python 3.14 이상. 패키지·환경 관리는 `uv`.
@@ -125,6 +151,14 @@ Follow-up TODOs: 없음
   4. 패키지 레지스트리 메타데이터(PyPI JSON 등) — 버전·의존성 확인용
 - **버전 고정**: 런타임 의존성은 정확한 버전 또는 명시적 범위로 고정한다. 전이 의존성을 직접
   선언하지 않는다 — 상위 패키지가 이미 핀을 갖는 경우 중복 선언은 충돌의 원인이 된다.
+- **프레임워크 진입점 구조** (원칙 VI 적용):
+  - `fastmcp.json` — 저장소 루트. `source.path`는 진입 파일, `source.entrypoint`는 무인자
+    팩토리(`create_server`). `environment.project`로 프로젝트 환경을 지정한다.
+  - 진입 파일 — 패키지 안에 두되 **절대 import만** 사용한다. 서버 조립(미들웨어, 게이팅,
+    lifespan)은 이 파일이 소유한다.
+  - 나머지 패키지 모듈 — 상대 import. 진입 파일이 절대 경로로 끌어온 뒤에는 정상 패키지
+    문맥에서 로드되므로 내부 상대 import가 그대로 동작한다.
+  - 배포 — wheel은 `src/` 패키지만 담는다. `fastmcp.json`은 개발용이며 산출물에 넣지 않는다.
 - **미해결 항목**: 원칙 I·V가 요구하는 기록은 해당 기능의 `research.md`에 모으고, 설계에 주는
   영향("무영향" 포함)을 함께 적는다.
 
@@ -155,4 +189,4 @@ Follow-up TODOs: 없음
 - **예외**: 원칙을 지킬 수 없는 경우, 계획 문서의 Complexity Tracking에 위반 내용·필요성·
   기각한 단순한 대안을 기록해야 한다. 기록되지 않은 예외는 예외가 아니다.
 
-**Version**: 1.0.0 | **Ratified**: 2026-09-01 | **Last Amended**: 2026-09-01
+**Version**: 1.1.0 | **Ratified**: 2026-09-01 | **Last Amended**: 2026-09-01
