@@ -1,0 +1,287 @@
+name: Release
+
+# Two ways in.
+#
+# 1. Push a tag you set yourself — the normal path:
+#
+#        git tag v0.1.1
+#        git push origin v0.1.1
+#
+#    That is the whole release. The version is derived from the tag, so there is
+#    no version field to bump and nothing to commit first.
+#
+# 2. Re-run an existing tag from the Actions tab, for when a release failed
+#    partway and you want to retry without inventing a new version number.
+#
+# Nothing publishes on an ordinary push to main.
+on:
+  push:
+    tags: ["v*"]
+  workflow_dispatch:
+    inputs:
+      tag:
+        description: "Existing tag to publish or retry, e.g. v0.1.1"
+        required: true
+        type: string
+
+env:
+  # `github.ref_name` is the tag on a tag push and the branch on a manual run,
+  # so the input takes precedence and every job reads the same value.
+  RELEASE_TAG: ${{ inputs.tag || github.ref_name }}
+
+# Never let two runs for the same tag upload at once. `cancel-in-progress: false`
+# on purpose: cancelling mid-upload is how you get a half-published release.
+concurrency:
+  group: release-${{ inputs.tag || github.ref_name }}
+  cancel-in-progress: false
+
+permissions:
+  contents: read
+
+jobs:
+  verify:
+    name: Verify tag and test
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    outputs:
+      released: ${{ steps.check.outputs.released }}
+    steps:
+      - uses: actions/checkout@v7
+        with:
+          ref: ${{ env.RELEASE_TAG }}
+          # The version is derived from git tags, so a shallow clone would
+          # silently build 0.0.0 instead of the release.
+          fetch-depth: 0
+
+      - name: Set up uv
+        uses: astral-sh/setup-uv@v10
+        with:
+          python-version: "3.14"
+
+      - name: Tag must be a release tag
+        id: check
+        # pyproject.toml carries no version to compare against — it is derived
+        # from this tag — so the only thing to validate here is the tag itself.
+        # That the build actually produced this version is asserted in `build`.
+        run: |
+          case "$RELEASE_TAG" in
+            v[0-9]*) ;;
+            *)
+              echo "::error::'$RELEASE_TAG' is not a release tag; expected something like v0.1.1."
+              exit 1
+              ;;
+          esac
+          echo "released=${RELEASE_TAG#v}" >> "$GITHUB_OUTPUT"
+          echo "Releasing ${RELEASE_TAG#v} from ${RELEASE_TAG}"
+
+      - name: Install
+        run: uv sync --locked --all-extras --dev
+
+      - name: Lint
+        run: uv run ruff check . && uv run ruff format --check .
+
+      - name: Test
+        run: uv run pytest -q
+
+  build:
+    name: Build distributions
+    needs: verify
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    steps:
+      - uses: actions/checkout@v7
+        with:
+          ref: ${{ env.RELEASE_TAG }}
+          # Same reason as above: hatchling reads the tag to compute the version.
+          fetch-depth: 0
+
+      - name: Set up uv
+        uses: astral-sh/setup-uv@v10
+        with:
+          python-version: "3.14"
+
+      - name: Build sdist and wheel
+        run: uv build
+
+      - name: Built version must be the tag
+        # Replaces the old tag-vs-pyproject comparison. With the version derived
+        # from git, the failure mode is no longer a stale string in a file — it
+        # is a checkout that could not see the tag, which yields something like
+        # 0.0.0.post7.dev0+ed6fdff. PyPI rejects local version segments, so
+        # catching it here turns a confusing upload error into a clear one.
+        run: |
+          want="${RELEASE_TAG#v}"
+          got="$(ls dist/*.whl | head -1 | sed -E 's|.*/[^-]+-([^-]+)-.*|\1|')"
+          if [ "$got" != "$want" ]; then
+            echo "::error::Built ${got} but the tag says ${want}."
+            echo "::error::Usually this means the checkout could not see tag ${RELEASE_TAG} — check fetch-depth and that the tag is pushed."
+            exit 1
+          fi
+          echo "Built ${got}, matching ${RELEASE_TAG}"
+
+      - name: Smoke-test the wheel
+        # Catches the packaging failure that matters most here. A wheel that
+        # installs but does not expose the `cloud-support-mcp` console script
+        # breaks `uvx cloud-support-mcp` for every user, and nothing in the test
+        # suite would notice — the tests import the package directly.
+        run: |
+          uv venv /tmp/smoke
+          VIRTUAL_ENV=/tmp/smoke uv pip install dist/*.whl
+          test -x /tmp/smoke/bin/cloud-support-mcp \
+            || { echo "::error::console script missing from the wheel"; exit 1; }
+          /tmp/smoke/bin/python -c "import cloud_support_mcp as m; assert callable(m.main)"
+          echo "console script and entry point present"
+
+      - uses: actions/upload-artifact@v7
+        with:
+          name: dist
+          path: dist/
+          if-no-files-found: error
+
+  pypi:
+    name: Publish to PyPI
+    needs: build
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    # Lets you require a manual approval, or restrict which tags may publish.
+    environment:
+      name: pypi
+      url: https://pypi.org/p/cloud-support-mcp
+    permissions:
+      # Trusted Publishing and Sigstore both need this: GitHub mints a
+      # short-lived OIDC token, PyPI verifies it against a publisher you
+      # registered, and uv signs the PEP 740 attestations with it. No API
+      # token is stored anywhere.
+      id-token: write
+    steps:
+      # v8 pairs with upload-artifact v7: it reads Content-Type and only
+      # decompresses what is actually zipped, which is what makes v7's direct
+      # uploads work. It also errors on a digest mismatch rather than warning.
+      # The majors differ because these are separate repositories, not because
+      # one is stale.
+      - uses: actions/download-artifact@v8
+        with:
+          name: dist
+          path: dist/
+
+      - name: Set up uv
+        uses: astral-sh/setup-uv@v10
+
+      - name: Publish
+        # --trusted-publishing always: if OIDC is not configured, fail here
+        #   rather than silently falling back to a token that does not exist.
+        # --check-url: makes a retry safe. If a previous run uploaded the sdist
+        #   and then died before the wheel, uv skips what is already on the
+        #   index instead of erroring on a duplicate. This is what makes
+        #   "re-run failed jobs" a real recovery path rather than a second
+        #   failure. Attestations are uploaded by default.
+        run: |
+          uv publish \
+            --trusted-publishing always \
+            --check-url https://pypi.org/simple
+
+  github-release:
+    name: Create GitHub release
+    needs: [verify, pypi]
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    permissions:
+      contents: write
+    steps:
+      - uses: actions/checkout@v7
+        with:
+          ref: ${{ env.RELEASE_TAG }}
+          # git-cliff reads the commit range between tags, so a shallow clone
+          # would produce an empty changelog.
+          fetch-depth: 0
+
+      # v8 pairs with upload-artifact v7: it reads Content-Type and only
+      # decompresses what is actually zipped, which is what makes v7's direct
+      # uploads work. It also errors on a digest mismatch rather than warning.
+      # The majors differ because these are separate repositories, not because
+      # one is stale.
+      - uses: actions/download-artifact@v8
+        with:
+          name: dist
+          path: dist/
+
+      - name: Generate changelog
+        id: changelog
+        uses: orhun/git-cliff-action@v4
+        # Deferred, not swallowed. PyPI has already published by this point and
+        # git-cliff panics rather than degrading when the GitHub API 404s or
+        # rate-limits, so stopping here would leave the package on PyPI with no
+        # release pointing at it. Instead the release is still created and the
+        # job then fails on purpose in the final step below — the run goes red,
+        # and nothing is lost.
+        continue-on-error: true
+        with:
+          # `github` renders the familiar release-note shape and, with the API
+          # reachable, adds contributors and pull-request links.
+          # Swap to `detailed` for sections grouped by Conventional Commit type
+          # (Features / Bug Fixes / Documentation) with per-commit links.
+          config: github
+          args: --latest --strip header
+        env:
+          GITHUB_REPO: ${{ github.repository }}
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+
+      - name: Publish release
+        uses: softprops/action-gh-release@v3
+        with:
+          # Explicit because a manual re-run is not triggered by the tag itself.
+          tag_name: ${{ env.RELEASE_TAG }}
+          files: dist/*
+          # Re-running must refresh the attached files rather than fail on them.
+          overwrite_files: true
+          # A pre-release tag such as v1.0.0-rc1 should not be marked "latest".
+          prerelease: ${{ contains(env.RELEASE_TAG, '-') }}
+          # Falls back to GitHub's own generator if the step above degraded,
+          # so the release is never published with an empty body. The
+          # substitution is reported as a failure by the next step.
+          generate_release_notes: ${{ steps.changelog.outcome != 'success' }}
+          body: |
+            ${{ steps.changelog.outputs.content }}
+
+            ## Install
+
+            Run it without cloning anything:
+
+            ```bash
+            uvx cloud-support-mcp
+            ```
+
+            Or pin this exact release:
+
+            ```bash
+            uvx cloud-support-mcp@${{ needs.verify.outputs.released }}
+            ```
+
+            MCP client configuration:
+
+            ```json
+            {
+              "mcpServers": {
+                "cloud-support": {
+                  "command": "uvx",
+                  "args": ["cloud-support-mcp"],
+                  "env": {
+                    "CLOUD_SUPPORT_MCP_PARENTS": "[\"projects/my-project\"]",
+                    "CLOUD_SUPPORT_MCP_QUOTA_PROJECT": "my-project"
+                  }
+                }
+              }
+            }
+            ```
+
+      - name: Fail if the changelog was not generated
+        # The release exists and PyPI is published — neither is rolled back.
+        # But a run that silently swapped in generic notes would report success
+        # and nobody would know the release notes are wrong, so this makes the
+        # degradation loud instead.
+        if: steps.changelog.outcome != 'success'
+        run: |
+          echo "::error title=Changelog degraded::git-cliff failed; the release was published with GitHub's generic notes instead of the Conventional Commit changelog."
+          echo "::error::Nothing was lost — the PyPI upload and the GitHub release for ${RELEASE_TAG} both completed."
+          echo "::error::Fix the cause, then either edit the release body by hand or re-run this job."
+          exit 1

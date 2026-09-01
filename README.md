@@ -48,12 +48,38 @@ prompts (`triage_open_cases`, `draft_case_from_incident`).
 
 ## Install and run
 
+Nothing to clone or install — `uvx` fetches the published package and runs it:
+
+```bash
+uvx cloud-support-mcp
+```
+
+Register it with an MCP client:
+
+```json
+{
+  "mcpServers": {
+    "cloud-support": {
+      "command": "uvx",
+      "args": ["cloud-support-mcp"],
+      "env": {
+        "CLOUD_SUPPORT_MCP_PARENTS": "[\"projects/my-project\",\"organizations/123456789\"]",
+        "CLOUD_SUPPORT_MCP_QUOTA_PROJECT": "my-project"
+      }
+    }
+  }
+}
+```
+
+Pin a release with `uvx cloud-support-mcp@0.1.0` if you would rather not track
+the latest.
+
+### From a clone
+
 ```bash
 uv sync
 uv run cloud-support-mcp        # stdio
 ```
-
-Register it with an MCP client:
 
 ```json
 {
@@ -113,6 +139,79 @@ the results.
 uv run pytest                  # unit + contract; integration is deselected
 uv run ruff check . && uv run ruff format --check .
 ```
+
+### Releasing
+
+Two workflows live in `.github/workflows/`. `ci.yml` lints and tests every push
+and pull request. `release.yml` fires **only on a tag you push yourself** —
+nothing publishes from an ordinary push to `main`.
+
+```bash
+git tag v0.1.1
+git push origin v0.1.1
+```
+
+That is the whole release. **The version is derived from the tag** — `pyproject.toml`
+declares `dynamic = ["version"]` and hatchling reads git, so there is no version
+string anywhere to bump or to drift out of sync. A build off a tag is `0.1.1`; a
+build one commit later is `0.1.1.post1.dev0+abc1234`, which PyPI refuses, so an
+accidental release from the wrong commit cannot reach the index.
+
+The pipeline runs lint and tests, builds the sdist and wheel, asserts the built
+version really is the tag (a checkout that cannot see the tag would quietly
+produce `0.0.0`), checks the wheel actually exposes the `cloud-support-mcp`
+console script (otherwise `uvx` would break for everyone), publishes to PyPI, and
+creates a GitHub release with the artifacts attached.
+
+#### When a release fails
+
+Every step fails loudly. Most of them also stop the steps after them — a failed
+PyPI upload means no GitHub release is created, so a tag never points at
+something that was not published.
+
+Changelog generation is the one exception, and it is deferred rather than
+swallowed. git-cliff crashes instead of degrading when the GitHub API is
+unreachable, and by that point PyPI has already published; stopping there would
+strand the package with no release pointing at it. So the release is created
+with GitHub's generic notes and **the job then fails on purpose**. The run goes
+red, an annotation says exactly what was substituted, and nothing is lost. Edit
+the release body by hand, or fix the cause and re-run the job.
+
+Fix the cause, then re-run the **same** tag — there is no need to burn a version
+number:
+
+- **Actions tab → the failed run → "Re-run failed jobs"** picks up from the job
+  that failed and reuses the artifacts already built.
+- **Actions tab → Release → "Run workflow"** takes an existing tag as input and
+  runs the whole pipeline against it. Use this when the run is too old to re-run,
+  or when you fixed something outside the repository — a missing PyPI publisher,
+  say.
+
+Retrying an upload is safe. `uv publish --check-url` checks the index first, so a
+run that uploaded the sdist and then died before the wheel will skip the sdist
+rather than fail on a duplicate. Re-running the release job likewise refreshes
+the attached files instead of erroring on them.
+
+The one thing a retry cannot fix is a version already published to PyPI with
+different contents — PyPI does not allow overwriting a file. That needs a new
+tag.
+
+**One-time setup before the first tag.** PyPI publishing uses Trusted Publishing,
+so no API token is stored anywhere — but it will not work until you register the
+publisher. On <https://pypi.org/manage/account/publishing/>, add a pending
+publisher with:
+
+| Field | Value |
+|-------|-------|
+| PyPI project name | `cloud-support-mcp` |
+| Owner | your GitHub user or org |
+| Repository name | this repository |
+| Workflow name | `release.yml` |
+| Environment name | `pypi` |
+
+The environment name matters: the `pypi` job declares `environment: pypi`, and
+PyPI checks it. Creating that environment in the repository settings also lets
+you require a manual approval before anything is published.
 
 Integration tests are double-gated on purpose:
 
