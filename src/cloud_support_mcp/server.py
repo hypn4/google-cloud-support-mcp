@@ -1,0 +1,137 @@
+"""Server assembly: lifespan, middleware, tag gating, explicit registration.
+
+Registration is explicit rather than FastMCP's FileSystemProvider. This package
+gets installed and run from an arbitrary path, so a runtime directory scan is
+fragile where an import is not — and explicit calls keep import errors traceable.
+"""
+
+from __future__ import annotations
+
+from collections.abc import AsyncIterator
+from contextlib import asynccontextmanager
+
+from fastmcp import FastMCP
+from fastmcp.server.middleware.error_handling import ErrorHandlingMiddleware
+from fastmcp.server.middleware.logging import LoggingMiddleware
+from fastmcp.server.middleware.rate_limiting import RateLimitingMiddleware
+from fastmcp.server.middleware.timing import TimingMiddleware
+
+from .auth import CredentialProvider
+from .clients import SupportClients, build_clients
+from .redaction import RedactionMiddleware, install_log_redaction
+from .settings import Settings, get_settings
+
+__all__ = ["build_server", "create_server"]
+
+INSTRUCTIONS = """\
+Read and act on Google Cloud Support cases across every configured project and
+organization.
+
+Scope: cases, comments, attachments, and problem classifications. Support event
+subscriptions are not exposed.
+
+Before anything is sent to Google Support — creating a case, commenting, changing
+attributes, closing, or uploading — you will be asked to confirm the exact payload.
+Declining changes nothing.
+
+Escalation is disabled by default because it reaches Google's support organisation
+directly; set CLOUD_SUPPORT_MCP_ENABLE_ESCALATION=true to expose it. Setting
+CLOUD_SUPPORT_MCP_ENABLE_WRITES=false leaves only the read tools.
+
+Configure scopes with CLOUD_SUPPORT_MCP_PARENTS, e.g.
+["projects/my-project","organizations/123456789"].
+"""
+
+
+def _lifespan(settings: Settings):
+    @asynccontextmanager
+    async def lifespan(_server: FastMCP) -> AsyncIterator[dict[str, object]]:
+        clients: SupportClients | None = None
+        try:
+            clients = build_clients(CredentialProvider(settings.quota_project))
+            yield {"clients": clients, "settings": settings}
+        finally:
+            if clients is not None:
+                await clients.aclose()
+
+    return lifespan
+
+
+def _apply_gating(mcp: FastMCP, settings: Settings) -> None:
+    """Hide tool groups the operator turned off (FR-018).
+
+    Escalation is off unless explicitly enabled; the remaining writes are on,
+    gated by the confirmation step rather than by configuration.
+    """
+    disabled: set[str] = set()
+    if not settings.enable_writes:
+        disabled.add("write")
+    if not settings.enable_escalation:
+        disabled.add("escalation")
+    if disabled:
+        mcp.disable(tags=disabled)
+
+
+def build_server(
+    settings: Settings | None = None,
+    *,
+    clients: SupportClients | None = None,
+) -> FastMCP:
+    """Assemble the server.
+
+    Passing `clients` injects a ready bundle and skips the lifespan entirely, so
+    contract tests can run against mocks without touching credentials.
+    """
+    settings = settings or get_settings()
+    install_log_redaction("cloud_support_mcp")
+
+    mcp = FastMCP(
+        name="cloud-support",
+        instructions=INSTRUCTIONS,
+        # Only ToolError text reaches a client, so anything that skips the error
+        # mapping in errors.py leaks nothing.
+        mask_error_details=True,
+        lifespan=None if clients is not None else _lifespan(settings),
+        middleware=[
+            ErrorHandlingMiddleware(),
+            # Before the logging middleware on purpose: what it would otherwise
+            # record is customer support data (FR-022).
+            RedactionMiddleware(),
+            TimingMiddleware(),
+            LoggingMiddleware(),
+            RateLimitingMiddleware(max_requests_per_second=20),
+        ],
+    )
+
+    from .prompts import register_prompts
+    from .resources import register_resources
+    from .tools import register_all
+
+    def get_clients() -> SupportClients:
+        """Resolve the client bundle for the in-flight request.
+
+        Injected clients win (that is how contract tests avoid credentials);
+        otherwise the bundle comes from the lifespan context, which owns it for
+        the life of the process rather than per call.
+        """
+        if clients is not None:
+            return clients
+        from fastmcp.server.dependencies import get_context
+
+        lifespan_context = get_context().lifespan_context
+        if isinstance(lifespan_context, dict) and "clients" in lifespan_context:
+            return lifespan_context["clients"]
+        raise RuntimeError(
+            "Support clients are unavailable — the server lifespan did not start. "
+            "Check that credentials resolve (gcloud auth application-default login)."
+        )
+
+    register_all(mcp, settings, get_clients)
+    register_resources(mcp, settings, get_clients)
+    register_prompts(mcp, settings)
+    _apply_gating(mcp, settings)
+    return mcp
+
+
+def create_server() -> FastMCP:
+    return build_server()
