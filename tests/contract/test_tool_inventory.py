@@ -89,3 +89,37 @@ class TestGatedExposure:
 
     async def test_escalation_is_hidden_by_default(self):
         assert "escalate_case" not in await _names(_server())
+
+
+async def test_server_reports_its_own_version_not_fastmcp_s():
+    """serverInfo.version must identify this release, not the framework's."""
+    from importlib.metadata import version
+
+    from cloud_support_mcp.server import _package_version
+
+    ours = _package_version()
+    assert ours != version("fastmcp"), "FastMCP 버전이 우리 버전으로 보고되고 있다"
+    assert ours[0].isdigit()
+
+
+def test_distribution_name_still_resolves():
+    """server.py 의 DISTRIBUTION_NAME 과 pyproject 의 project.name 이 붙어 있는지.
+
+    둘이 어긋나면 예외가 아니라 UNKNOWN_VERSION 으로 조용히 떨어진다. 그 값도
+    'FastMCP 버전과 다르고 숫자로 시작한다'를 만족하므로 위 테스트를 그냥 통과한다.
+    이름을 바꿀 때 한쪽만 고치는 것이 정확히 그 경로다.
+    """
+    from importlib.metadata import PackageNotFoundError, distribution
+
+    from cloud_support_mcp.server import DISTRIBUTION_NAME, UNKNOWN_VERSION, _package_version
+
+    try:
+        distribution(DISTRIBUTION_NAME)
+    except PackageNotFoundError:
+        raise AssertionError(
+            f"설치 메타데이터에 '{DISTRIBUTION_NAME}' 가 없다. "
+            "server.py 의 DISTRIBUTION_NAME 과 pyproject.toml 의 project.name 이 "
+            "어긋났거나 패키지가 설치되지 않았다."
+        ) from None
+
+    assert _package_version() != UNKNOWN_VERSION, "설치되어 있는데도 폴백 버전이 반환됐다"
