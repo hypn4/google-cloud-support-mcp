@@ -14,7 +14,7 @@ without reading the conversation that produced them.
 
 ## The one blocker behind two of them
 
-`projects/kktae-demo` — the project used for live verification — **has no paid
+`projects/my-project` — the project used for live verification — **has no paid
 support plan.** Reading works; creating a case does not:
 
 ```
