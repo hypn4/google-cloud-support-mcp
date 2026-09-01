@@ -1,0 +1,53 @@
+[project]
+name = "cloud-support-mcp"
+version = "0.1.0"
+description = "MCP server for Google Cloud Support - cases, comments, attachments, classifications across projects and organizations"
+readme = "README.md"
+authors = [
+    { name = "hypn4", email = "khs951211@gmail.com" }
+]
+requires-python = ">=3.14"
+
+# 헌법 원칙 IV: 정확한 값으로 고정. 2026-09-01 PyPI 확인 (T001).
+# 전이 의존성(google-auth, pydantic, mcp, grpcio)은 직접 선언하지 않는다.
+dependencies = [
+    "fastmcp==4.0.0",
+    "google-cloud-support==0.5.3",
+    "httpx==0.28.1",
+    "pydantic-settings==2.15.0",
+]
+
+[project.scripts]
+cloud-support-mcp = "cloud_support_mcp:main"
+
+[dependency-groups]
+dev = [
+    "pytest==9.1.1",
+    "pytest-asyncio==1.4.0",
+    "respx==0.23.1",
+    "ruff==0.16.5",
+]
+
+[build-system]
+requires = ["uv_build>=0.12.7,<0.13.0"]
+build-backend = "uv_build"
+
+[tool.ruff]
+line-length = 100
+target-version = "py314"
+src = ["src", "tests"]
+
+[tool.ruff.lint]
+select = ["E", "F", "I", "UP", "B", "SIM", "RUF"]
+ignore = ["E501"]
+
+[tool.ruff.lint.isort]
+known-first-party = ["cloud_support_mcp"]
+
+[tool.pytest.ini_options]
+asyncio_mode = "auto"
+testpaths = ["tests"]
+markers = [
+    "integration: hits the real Google Cloud Support API (requires CLOUD_SUPPORT_MCP_IT_PARENT)",
+]
+addopts = "-m 'not integration'"
