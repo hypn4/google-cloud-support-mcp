@@ -16,14 +16,20 @@ venv/
 .mypy_cache/
 
 # Local agent/editor tooling — vendored or generated, not project artifacts.
-# .specify/ is deliberately NOT listed: it carries the project constitution
-# (.specify/memory/constitution.md), which governs this repo.
 .claude/
 .codegraph/
 .cursor/
 .aider*
 .idea/
 .vscode/
+
+# Spec Kit workspace — design documents, task lists and the project
+# constitution. Kept local on purpose: they are how this repository is
+# developed, not something a consumer of the package needs, and they were
+# removed from the published history rather than merely untracked.
+.specify/
+specs/
+REFERENCE.md
 
 # Secrets
 .env

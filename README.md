@@ -27,9 +27,8 @@ prompts (`triage_open_cases`, `draft_case_from_incident`).
 
 **Not covered**, deliberately:
 
-- **`SupportEventSubscriptionService`** (7 RPCs) is out of scope — push delivery
-  and subscription CRUD alike. See `specs/001-gcp-support-mcp/spec.md`
-  Clarifications, 2026-09-01.
+- **`SupportEventSubscriptionService`** (7 RPCs) — push delivery and
+  subscription CRUD alike.
 - **`v2beta`**, including `FeedService.ShowFeed`. The one thing v2beta looked
   like it offered — cross-organization search — turned out not to exist: its
   query grammar's `OR` combines values within a field, never scope identifiers.
@@ -76,8 +75,8 @@ Register it with an MCP client:
 }
 ```
 
-Pin a release with `uvx google-cloud-support-mcp@0.1.0` if you would rather not track
-the latest.
+Pin a release with `uvx google-cloud-support-mcp@0.1.0` if you would rather not
+track the latest.
 
 ### From a clone
 
@@ -147,5 +146,5 @@ the results.
 ```bash
 uv run pytest                  # unit + contract; integration is deselected
 uv run ruff check . && uv run ruff format --check .
+uv run fastmcp inspect         # the server must load through the FastMCP CLI
 ```
-
