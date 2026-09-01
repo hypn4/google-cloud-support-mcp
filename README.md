@@ -157,6 +157,22 @@ organization's cases. Pagination uses a composite cursor that carries a token pe
 scope; changing `parents` mid-pagination is rejected rather than silently skewing
 the results.
 
+## Known limitations
+
+**Attachment upload limits are unverified.** `MAX_UPLOAD_BYTES` defaults to 10 MB, which is a
+placeholder rather than a measured ceiling — the API does not document one, and no live upload
+has been run against a project with a paid support plan. The limit may be higher or lower than
+the real one, and the transfer form is an informed reading of the media reference rather than
+a confirmed protocol.
+
+**A mistyped scope reports the wrong thing.** Name a project that does not exist and the answer
+says the service is temporarily unreachable and suggests retrying. Retrying will not help: the
+upstream API returns a bare HTTP 500 for a nonexistent project, and a 500 carries nothing that
+separates a typo from a real outage — so reclassifying it would mislabel genuine outages
+instead. The scope still appears in `scopes_failed` rather than silently returning "no cases".
+
+[TODO.md](./TODO.md) has the full list and what would unblock each item.
+
 ## Development
 
 ```bash
