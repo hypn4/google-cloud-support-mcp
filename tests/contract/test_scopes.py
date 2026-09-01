@@ -188,7 +188,8 @@ class TestGuidanceIsPartOfTheContract:
     async def _description(self, fake_clients) -> str:
         async with Client(_server(fake_clients)) as client:
             tools = {t.name: t for t in await client.list_tools()}
-        return tools["list_scopes"].description or ""
+        # Whitespace-collapsed so a reflow of the docstring cannot fail these.
+        return " ".join((tools["list_scopes"].description or "").split())
 
     async def test_it_tells_the_assistant_to_ask_when_several_match(self, fake_clients):
         assert "ask the user which one" in (await self._description(fake_clients)).lower()

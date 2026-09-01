@@ -146,6 +146,49 @@ class TestPagination:
         assert "cursor" in str(exc.value).lower()
 
 
+class TestSearchGuidanceIsPartOfTheContract:
+    """The description is the only place the server can correct a bad reading.
+
+    "Cases from the last 7 days" maps to `updated_after` because that is the only
+    time filter the API has — so a case opened in July and commented on yesterday
+    comes back, and the user reads it as new. The server cannot stop that; it can
+    only say so where the assistant will read it. That makes the wording contract.
+    """
+
+    async def _description(self, fake_clients) -> str:
+        from google_cloud_support_mcp.server import build_server
+
+        server = build_server(Settings(parents=["projects/p"]), clients=fake_clients)
+        async with Client(server) as client:
+            tools = {t.name: t for t in await client.list_tools()}
+        # Collapse the wrapping. Asserting literal substrings against prose that
+        # a formatter may reflow at any column makes the test fail on layout
+        # rather than on meaning — which it did, the first time this was written.
+        return " ".join((tools["search_cases"].description or "").split()).lower()
+
+    async def test_it_says_there_is_no_create_time_filter(self, fake_clients):
+        assert "no `create_time` filter".lower() in await self._description(fake_clients)
+
+    async def test_it_gives_the_exact_recipe_for_created_after(self, fake_clients):
+        """Not "approximately" — and both halves are needed for that to be true.
+
+        The superset argument alone leaves a case created at exactly the cutoff
+        and never touched since, because the API compares with a strict `>`.
+        Stepping the cutoff back closes it, and the create_time filter applied
+        afterwards takes the widened second back off.
+        """
+        description = await self._description(fake_clients)
+        assert "cannot be updated before it was created" in description
+        assert "strictly greater-than" in description
+        assert "a little before" in description
+
+    async def test_it_warns_against_filtering_a_single_page(self, fake_clients):
+        """The failure this replaces: one page filtered locally, reported as the answer."""
+        description = await self._description(fake_clients)
+        assert "cursor" in description
+        assert "do not filter one page" in description
+
+
 class TestScopeNamedInTheRequest:
     """US1: naming a scope in the request must work with nothing configured.
 

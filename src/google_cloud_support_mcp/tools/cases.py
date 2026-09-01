@@ -106,6 +106,25 @@ def register(mcp: FastMCP, settings: Settings, get_clients) -> None:
         for that. Results come back from every scope that answered, and a scope
         that failed is reported in `scopes_failed` with what to do about it — one
         organization's permission error never hides another organization's cases.
+
+        **"Recent" is ambiguous and the API only answers half of it.** The query
+        grammar can filter on `update_time` and has no `create_time` filter at
+        all, so `updated_after` means *touched* since then, not *opened* since
+        then. A case opened months ago and commented on yesterday matches. If the
+        user meant newly opened cases, say which one you searched rather than
+        letting them assume.
+
+        To answer "created after X" exactly: pass `updated_after` a little before
+        X — a second is plenty — then keep only results whose `create_time` is at
+        or after X. Page through with `cursor` while `next_cursor` comes back; do
+        not filter one page and call it the answer.
+
+        Two things make that exact rather than approximate. A case cannot be
+        updated before it was created, so everything created after X is somewhere
+        in the set updated after X. And the comparison the API performs is
+        strictly greater-than, which would drop a case created at exactly X and
+        never touched since — stepping the cutoff back covers it, and the
+        `create_time` check you apply afterwards removes the extra second again.
         """
         scopes = parents or settings.parents
         if not scopes:
