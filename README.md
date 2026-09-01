@@ -4,6 +4,11 @@ An MCP server for Google Cloud Support. Read and act on support cases across
 every project and organization you have access to, without leaving the
 conversation.
 
+> **This is not an official Google product.** It is an independent project, not
+> affiliated with, endorsed by, or supported by Google. It talks to the public
+> [Cloud Support API](https://cloud.google.com/support/docs/reference/rest) using
+> your own credentials. Google Cloud and Google are trademarks of Google LLC.
+
 ## What it covers
 
 Fourteen tools over the Cloud Support API v2 — cases, comments, attachments, and
