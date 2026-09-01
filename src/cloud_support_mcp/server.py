@@ -9,6 +9,7 @@ from __future__ import annotations
 
 from collections.abc import AsyncIterator
 from contextlib import asynccontextmanager
+from importlib.metadata import PackageNotFoundError, version
 
 from fastmcp import FastMCP
 from fastmcp.server.middleware.error_handling import ErrorHandlingMiddleware
@@ -22,6 +23,33 @@ from .redaction import RedactionMiddleware, install_log_redaction
 from .settings import Settings, get_settings
 
 __all__ = ["build_server", "create_server"]
+
+
+# The name this package is published under. It is a constant rather than a
+# literal inside the lookup below because the two are coupled and the coupling
+# fails quietly: if this drifts from `project.name` in pyproject.toml, the lookup
+# raises PackageNotFoundError, gets caught, and every client is told the version
+# is UNKNOWN_VERSION. Nothing crashes. A contract test asserts the pair still
+# agree — see tests/contract/test_tool_inventory.py.
+DISTRIBUTION_NAME = "cloud-support-mcp"
+
+# Returned when the package is not installed, e.g. running straight from a
+# source tree. Named so tests can distinguish "not installed" from "installed
+# under a different name", which look identical from here.
+UNKNOWN_VERSION = "0.0.0+unknown"
+
+
+def _package_version() -> str:
+    """Our version, not FastMCP's.
+
+    Left unset, `serverInfo.version` reports the FastMCP library version, which
+    tells a client nothing about which release of this server it is talking to.
+    """
+    try:
+        return version(DISTRIBUTION_NAME)
+    except PackageNotFoundError:
+        return UNKNOWN_VERSION
+
 
 INSTRUCTIONS = """\
 Read and act on Google Cloud Support cases across every configured project and
@@ -87,6 +115,7 @@ def build_server(
 
     mcp = FastMCP(
         name="cloud-support",
+        version=_package_version(),
         instructions=INSTRUCTIONS,
         # Only ToolError text reaches a client, so anything that skips the error
         # mapping in errors.py leaks nothing.
