@@ -1,6 +1,6 @@
 [project]
 name = "cloud-support-mcp"
-version = "0.1.0"
+dynamic = ["version"]
 description = "MCP server for Google Cloud Support - cases, comments, attachments, classifications across projects and organizations"
 readme = "README.md"
 authors = [
@@ -29,8 +29,29 @@ dev = [
 ]
 
 [build-system]
-requires = ["uv_build>=0.12.7,<0.13.0"]
-build-backend = "uv_build"
+# uv_build does not support `dynamic = ["version"]`, so the version comes from
+# git tags via hatchling instead. The tag is the single source of truth: there
+# is no version string in this file to drift out of sync with it.
+#
+# Pinned exactly so a release built today and one built next month produce the
+# same artifact. Verified against PyPI 2026-09-01; uv-dynamic-versioning 0.14.1
+# constrains hatchling to ~=1.28, which 1.32.0 satisfies.
+requires = ["hatchling==1.32.0", "uv-dynamic-versioning==0.14.1"]
+build-backend = "hatchling.build"
+
+[tool.hatch.version]
+source = "uv-dynamic-versioning"
+
+[tool.hatch.build.targets.wheel]
+packages = ["src/cloud_support_mcp"]
+
+[tool.uv-dynamic-versioning]
+vcs = "git"
+style = "pep440"
+# Only reached when building outside a git checkout with no tag reachable.
+# A release build must land on a tag exactly; anything else carries a PEP 440
+# local segment (+abc1234) that PyPI refuses, which is the safety net.
+fallback-version = "0.0.0"
 
 [tool.ruff]
 line-length = 100
