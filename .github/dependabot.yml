@@ -1,0 +1,17 @@
+version: 2
+updates:
+  # Action tags move faster than anything else here, and a stale action inside a
+  # workflow that holds id-token: write is worth noticing early.
+  - package-ecosystem: github-actions
+    directory: /
+    schedule:
+      interval: weekly
+    commit-message:
+      prefix: ci
+
+  - package-ecosystem: uv
+    directory: /
+    schedule:
+      interval: weekly
+    commit-message:
+      prefix: build

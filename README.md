@@ -48,12 +48,38 @@ prompts (`triage_open_cases`, `draft_case_from_incident`).
 
 ## Install and run
 
+Nothing to clone or install — `uvx` fetches the published package and runs it:
+
+```bash
+uvx cloud-support-mcp
+```
+
+Register it with an MCP client:
+
+```json
+{
+  "mcpServers": {
+    "cloud-support": {
+      "command": "uvx",
+      "args": ["cloud-support-mcp"],
+      "env": {
+        "CLOUD_SUPPORT_MCP_PARENTS": "[\"projects/my-project\",\"organizations/123456789\"]",
+        "CLOUD_SUPPORT_MCP_QUOTA_PROJECT": "my-project"
+      }
+    }
+  }
+}
+```
+
+Pin a release with `uvx cloud-support-mcp@0.1.0` if you would rather not track
+the latest.
+
+### From a clone
+
 ```bash
 uv sync
 uv run cloud-support-mcp        # stdio
 ```
-
-Register it with an MCP client:
 
 ```json
 {
@@ -114,32 +140,3 @@ uv run pytest                  # unit + contract; integration is deselected
 uv run ruff check . && uv run ruff format --check .
 ```
 
-Integration tests are double-gated on purpose:
-
-```bash
-export CLOUD_SUPPORT_MCP_IT_PARENT=projects/my-test-project   # read-only tests
-export CLOUD_SUPPORT_MCP_IT_ALLOW_WRITES=1                    # also the writing ones
-```
-
-Writing tests always pass `test_case=True`, which keeps the case out of a support
-engineer's queue, and a guard in `tests/integration/conftest.py` refuses any
-`CreateCase` without that flag. Escalation is never exercised against the live
-API.
-
-### Not yet verified against the live API
-
-Three checks need a project with a **paid support plan**, which the verification
-project did not have. The code is written and covered by mock-based contract
-tests; only the live confirmation is outstanding:
-
-- attachment upload size limit and the media `uploadType` (T081)
-- first-run time-to-first-query measurement (T083)
-- the write walkthroughs, quickstart V4 and V5 (T085)
-
-`specs/001-gcp-support-mcp/deferred.md` says what is blocked, what was already
-confirmed live on 2026-09-01, and which files to touch when you finish each one.
-Read it before picking any of them up — several non-obvious API behaviours are
-recorded there and are easy to re-derive by accident.
-
-Design documents live in `specs/001-gcp-support-mcp/`; project principles are in
-`.specify/memory/constitution.md`.
