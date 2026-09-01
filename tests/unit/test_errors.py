@@ -15,9 +15,9 @@ PLAN_403 = "The caller does not have a Google Cloud support plan for this resour
 PERM_403 = "Permission 'cloudsupport.cases.list' denied on resource."
 # Observed verbatim from a live 403 on 2026-09-01.
 DISABLED_403 = (
-    "Google Cloud Support API has not been used in project kktae-demo before or it is "
+    "Google Cloud Support API has not been used in project my-project before or it is "
     "disabled. Enable it by visiting https://console.developers.google.com/apis/api/"
-    "cloudsupport.googleapis.com/overview?project=kktae-demo then retry."
+    "cloudsupport.googleapis.com/overview?project=my-project then retry."
 )
 
 
