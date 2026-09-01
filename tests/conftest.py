@@ -75,6 +75,8 @@ class _Page:
     comments: list[Any] = field(default_factory=list)
     attachments: list[Any] = field(default_factory=list)
     case_classifications: list[Any] = field(default_factory=list)
+    projects: list[Any] = field(default_factory=list)
+    organizations: list[Any] = field(default_factory=list)
     next_page_token: str = ""
 
 
@@ -118,6 +120,83 @@ class FakeCaseService:
     async def escalate_case(self, request=None, **kw):
         self.calls.append(("escalate_case", request))
         return self.cases[0]
+
+
+@dataclass
+class FakeScope:
+    """Shape-compatible with resourcemanager_v3 Project / Organization.
+
+    `project_id` is what tells the serializer which class it is, and `name` is
+    deliberately a project *number* so a serializer that reaches for the wrong
+    field is caught rather than accidentally right.
+    """
+
+    project_id: str = ""
+    name: str = ""
+    display_name: str = ""
+    state: Any = field(default_factory=lambda: _FakeEnumValue("ACTIVE"))
+
+
+class _FakeEnumValue:
+    def __init__(self, name: str) -> None:
+        self.name = name
+
+
+def make_project(pid: str, display_name: str | None = None) -> FakeScope:
+    return FakeScope(
+        project_id=pid,
+        name=f"projects/{abs(hash(pid)) % 10**12:012d}",
+        display_name=display_name if display_name is not None else pid.replace("-", " ").title(),
+    )
+
+
+def make_org(number: str, display_name: str) -> FakeScope:
+    return FakeScope(name=f"organizations/{number}", display_name=display_name)
+
+
+@dataclass
+class _FakePagedService:
+    """Base for the two Resource Manager fakes.
+
+    Pages on purpose. A single-page fake would let a paging bug pass every test:
+    the tool could ignore `next_page_token` entirely and still return everything
+    the fake had. `page_items` sets how many are handed back per call, so a test
+    can put a match on page two without building a hundred rows.
+    """
+
+    items: list[FakeScope] = field(default_factory=list)
+    page_items: int = 2
+    error: BaseException | None = None
+    calls: list[Any] = field(default_factory=list)
+
+    def _page(self, request):
+        if self.error is not None:
+            raise self.error
+        start = int(request.page_token) if getattr(request, "page_token", "") else 0
+        # The real service honours page_size and may return fewer. Modelling only
+        # the second half would let a caller ask for 5 and quietly receive 100,
+        # which is exactly the bug this fake is used to catch.
+        requested = getattr(request, "page_size", 0) or self.page_items
+        size = min(self.page_items, requested)
+        chunk = self.items[start : start + size]
+        nxt = start + size
+        return chunk, (str(nxt) if nxt < len(self.items) else "")
+
+
+@dataclass
+class FakeProjectsService(_FakePagedService):
+    async def search_projects(self, request=None, **kw):
+        self.calls.append(("search_projects", request))
+        chunk, token = self._page(request)
+        return _Page(projects=list(chunk), next_page_token=token)
+
+
+@dataclass
+class FakeOrganizationsService(_FakePagedService):
+    async def search_organizations(self, request=None, **kw):
+        self.calls.append(("search_organizations", request))
+        chunk, token = self._page(request)
+        return _Page(organizations=list(chunk), next_page_token=token)
 
 
 @dataclass
@@ -167,6 +246,10 @@ def fake_clients() -> SupportClients:
         cases=FakeCaseService(),
         comments=FakeCommentService(),
         attachments=FakeAttachmentService(),
+        projects=FakeProjectsService(
+            items=[make_project("my-billing-project"), make_project("other-proj")]
+        ),
+        organizations=FakeOrganizationsService(items=[make_org("123456789", "acme.example")]),
         http=httpx.AsyncClient(base_url="https://cloudsupport.googleapis.com"),
         credentials=FakeCredentials(),
     )

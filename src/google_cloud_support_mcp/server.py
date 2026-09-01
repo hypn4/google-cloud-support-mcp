@@ -58,8 +58,13 @@ def _package_version() -> str:
 
 
 INSTRUCTIONS = """\
-Read and act on Google Cloud Support cases across every configured project and
-organization.
+Read and act on Google Cloud Support cases across the projects and organizations
+the user names.
+
+Scopes are given per request, not configured in advance. When a user says "the
+cases in my-billing-project", pass that scope on the call. If you do not know the
+identifier, call list_scopes to find it — do not tell the user to set an
+environment variable.
 
 Scope: cases, comments, attachments, and problem classifications. Support event
 subscriptions are not exposed.
@@ -72,8 +77,8 @@ Escalation is disabled by default because it reaches Google's support organisati
 directly; set GOOGLE_CLOUD_SUPPORT_MCP_ENABLE_ESCALATION=true to expose it. Setting
 GOOGLE_CLOUD_SUPPORT_MCP_ENABLE_WRITES=false leaves only the read tools.
 
-Configure scopes with GOOGLE_CLOUD_SUPPORT_MCP_PARENTS, e.g.
-["projects/my-project","organizations/123456789"].
+GOOGLE_CLOUD_SUPPORT_MCP_PARENTS is an optional default, used only when a request
+names no scope at all. It is a convenience, not a prerequisite.
 """
 
 

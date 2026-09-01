@@ -11,11 +11,12 @@ conversation.
 
 ## What it covers
 
-Fourteen tools over the Cloud Support API v2 — cases, comments, attachments, and
-problem classifications:
+Fifteen tools over the Cloud Support API v2 — cases, comments, attachments, and
+problem classifications, plus scope discovery:
 
 | Group | Tools |
 |-------|-------|
+| Scopes | `list_scopes` |
 | Cases (read) | `search_cases`, `get_case` |
 | Cases (write) | `create_case`, `update_case`, `close_case`, `escalate_case` |
 | Classifications | `search_case_classifications` |
@@ -24,6 +25,11 @@ problem classifications:
 
 Plus a `case://{parent_type}/{parent_id}/{case_id}` resource template and two
 prompts (`triage_open_cases`, `draft_case_from_incident`).
+
+Scopes are named in the conversation, not configured in advance. "List the open
+cases in my-billing-project" works with nothing set up; `list_scopes` turns a name
+you know into the identifier the API wants, which matters most for organizations —
+they are addressed by a number nobody remembers.
 
 **Not covered**, deliberately:
 
@@ -42,7 +48,17 @@ prompts (`triage_open_cases`, `draft_case_from_incident`).
 3. IAM: `roles/cloudsupport.techSupportViewer` to read,
    `roles/cloudsupport.techSupportEditor` to write. Organization-level scopes
    also need `resourcemanager.organizations.get`.
-4. API enabled and credentials resolved:
+4. **For `list_scopes` only** — the Cloud Resource Manager API enabled, plus
+   `resourcemanager.projects.get` and, to see organizations,
+   `resourcemanager.organizations.get`. Nothing else needs it, and holding one
+   permission and not the other is fine: the class you cannot read is reported
+   and the other still answers.
+
+   ```bash
+   gcloud services enable cloudresourcemanager.googleapis.com --project=PROJECT_ID
+   ```
+
+5. API enabled and credentials resolved:
 
    ```bash
    gcloud services enable cloudsupport.googleapis.com --project=PROJECT_ID
@@ -110,7 +126,7 @@ All variables take the `GOOGLE_CLOUD_SUPPORT_MCP_` prefix.
 
 | Variable | Default | What it does |
 |----------|---------|--------------|
-| `PARENTS` | `[]` | Scopes to query, as a JSON list of `projects/{id}` / `organizations/{id}`. Validated at start-up. |
+| `PARENTS` | `[]` | **Optional default.** Used only when a request names no scope. You can name a project or organization in the conversation instead — `list_scopes` finds the identifier. Validated at start-up. |
 | `QUOTA_PROJECT` | — | Billing/quota project. Organization-level calls with user credentials generally need this. |
 | `ENABLE_WRITES` | `true` | `false` leaves only the eight read tools. |
 | `ENABLE_ESCALATION` | **`false`** | Escalation is hidden unless you turn it on. See below. |

@@ -8,6 +8,10 @@ from google_cloud_support_mcp.fanout import decode_cursor
 from google_cloud_support_mcp.settings import Settings
 
 READ_TOOLS = {
+    # Registered here as well as in test_tool_inventory: both files sweep
+    # read-only annotations over a fixed set of names, so a tool left out of the
+    # set is never checked rather than failing.
+    "list_scopes",
     "search_cases",
     "get_case",
     "list_comments",
@@ -22,7 +26,7 @@ async def _tools(server):
         return {t.name: t for t in await client.list_tools()}
 
 
-async def test_all_six_read_tools_registered(mcp_server):
+async def test_all_read_tools_registered(mcp_server):
     assert set(await _tools(mcp_server)) >= READ_TOOLS
 
 
@@ -140,3 +144,76 @@ class TestPagination:
             with pytest.raises(Exception) as exc:
                 await client.call_tool("search_cases", {"cursor": stale})
         assert "cursor" in str(exc.value).lower()
+
+
+class TestScopeNamedInTheRequest:
+    """US1: naming a scope in the request must work with nothing configured.
+
+    The capability already existed — `scopes = parents or settings.parents` — but
+    every piece of text the model reads led with the environment variable, so the
+    assistant asked the user to go and configure something instead of answering.
+    These pin the behaviour and the wording that advertises it.
+    """
+
+    async def test_an_explicit_scope_needs_no_configuration(self, fake_clients):
+        from google_cloud_support_mcp.server import build_server
+
+        server = build_server(Settings(parents=[]), clients=fake_clients)
+        async with Client(server) as client:
+            result = await client.call_tool("search_cases", {"parents": ["projects/my-project"]})
+        assert result.structured_content["items"], "설정 없이 지정한 스코프가 조회되지 않았다"
+        assert result.structured_content["scopes_failed"] == []
+
+    async def test_a_named_scope_beats_the_configured_default(self, fake_clients):
+        from google_cloud_support_mcp.server import build_server
+
+        server = build_server(Settings(parents=["projects/configured"]), clients=fake_clients)
+        async with Client(server) as client:
+            await client.call_tool("search_cases", {"parents": ["projects/named"]})
+        parents = [r.parent for name, r in fake_clients.cases.calls if name == "search_cases"]
+        assert parents == ["projects/named"], parents
+
+    async def test_the_no_scope_message_leads_with_the_per_call_path(self, fake_clients):
+        """FR-009: order is the requirement, not presence.
+
+        The message already mentioned both routes and still produced the wrong
+        behaviour, because the environment variable came first and read as the
+        prerequisite. Asserting on presence would pass against the old text.
+        """
+        from google_cloud_support_mcp.server import build_server
+
+        server = build_server(Settings(parents=[]), clients=fake_clients)
+        async with Client(server) as client:
+            with pytest.raises(Exception) as exc:
+                await client.call_tool("search_cases", {})
+
+        message = str(exc.value)
+        per_call = message.find("parents")
+        env_var = message.find("GOOGLE_CLOUD_SUPPORT_MCP_")
+        assert per_call != -1, message
+        assert env_var == -1 or per_call < env_var, f"환경변수가 먼저 나온다: {message}"
+
+    async def test_an_unreachable_scope_is_not_silence(self, fake_clients):
+        """A typo must not read as "no cases" (spec Edge Cases; research R-112).
+
+        Confirmed live on 2026-09-01: the API rejects an unreachable parent rather
+        than returning an empty page, so `items` empty *plus* a `scopes_failed`
+        entry is the shape that distinguishes the two. Note the reason it gives is
+        a 500, which our table maps to `unavailable` and describes as retryable —
+        wrong for a typo, and not fixable from here. R-112 says why.
+        """
+        from google_cloud_support_mcp.server import build_server
+
+        fake_clients.cases.errors_by_parent = {
+            "projects/typo": gexc.InternalServerError("500 Internal error encountered.")
+        }
+        server = build_server(Settings(parents=[]), clients=fake_clients)
+        async with Client(server) as client:
+            body = (
+                await client.call_tool("search_cases", {"parents": ["projects/typo"]})
+            ).structured_content
+
+        assert body["items"] == []
+        assert [f["parent"] for f in body["scopes_failed"]] == ["projects/typo"], (
+            "빈 목록만 돌아오면 '케이스 없음'과 구분되지 않는다"
+        )

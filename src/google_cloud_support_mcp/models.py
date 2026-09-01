@@ -10,7 +10,9 @@ from __future__ import annotations
 from enum import StrEnum
 from typing import Literal
 
-from pydantic import BaseModel, Field
+from pydantic import BaseModel, Field, field_validator
+
+from .settings import _PARENT
 
 # --------------------------------------------------------------------------- #
 # Enumerations
@@ -155,6 +157,40 @@ class DownloadedAttachment(BaseModel):
 class Classification(BaseModel):
     id: str
     display_name: str = ""
+
+
+class ScopeRef(BaseModel):
+    """A project or organization that can hold support cases.
+
+    `parent` is the whole point: it is the string the caller passes straight back
+    as a scope, with no editing. For a project that means `projects/{project_id}`
+    and never the project *number* the API returns in `Project.name` — the number
+    addresses the same project and reads as noise in a list someone is scanning
+    for a name they half-remember.
+    """
+
+    parent: str
+    kind: Literal["project", "organization"]
+    display_name: str = ""
+    state: str = ""
+
+    @field_validator("parent")
+    @classmethod
+    def _parent_is_addressable(cls, value: str) -> str:
+        """Enforce the same shape the settings validator enforces.
+
+        The point of this model is that `parent` can be handed straight back as a
+        scope. A value the settings validator would reject looks usable and is
+        not, so the check lives here rather than in a test of one construction
+        site. The pattern is imported rather than restated — two regexes for one
+        shape is how they drift.
+        """
+        if not _PARENT.match(value):
+            raise ValueError(
+                f"{value!r} is not addressable as a scope; "
+                "expected projects/{id} or organizations/{id}"
+            )
+        return value
 
 
 # --------------------------------------------------------------------------- #

@@ -39,3 +39,5 @@ REFERENCE.md
 .DS_Store
 Thumbs.db
 *.swp
+
+.mcp.json

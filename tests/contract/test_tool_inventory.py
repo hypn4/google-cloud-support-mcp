@@ -14,6 +14,7 @@ from google_cloud_support_mcp.server import build_server
 from google_cloud_support_mcp.settings import Settings
 
 READ = {
+    "list_scopes",
     "search_cases",
     "get_case",
     "search_case_classifications",
@@ -37,7 +38,7 @@ DESTRUCTIVE = {"close_case", "escalate_case"}
 def _server(**kw):
     return build_server(
         Settings(parents=["projects/p"], **kw),
-        clients=SupportClients(None, None, None, None, None),
+        clients=SupportClients(None, None, None, None, None, None, None),
     )
 
 
@@ -47,7 +48,7 @@ async def _names(server) -> set[str]:
 
 
 class TestInventory:
-    async def test_fourteen_tools_when_everything_is_enabled(self):
+    async def test_fifteen_tools_when_everything_is_enabled(self):
         assert await _names(_server(enable_escalation=True)) == READ | WRITE
 
     async def test_annotations_match_the_contract(self):
@@ -79,9 +80,9 @@ class TestGatedExposure:
     @pytest.mark.parametrize(
         ("kwargs", "expected"),
         [
-            ({}, 13),
-            ({"enable_escalation": True}, 14),
-            ({"enable_writes": False}, 8),
+            ({}, 14),
+            ({"enable_escalation": True}, 15),
+            ({"enable_writes": False}, 9),
         ],
     )
     async def test_counts(self, kwargs, expected):

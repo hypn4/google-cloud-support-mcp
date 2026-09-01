@@ -71,7 +71,15 @@ def register(mcp: FastMCP, settings: Settings, get_clients) -> None:
     async def search_cases(
         parents: Annotated[
             list[str] | None,
-            Field(description="Scopes to search; defaults to GOOGLE_CLOUD_SUPPORT_MCP_PARENTS"),
+            Field(
+                description=(
+                    "Scopes to search, e.g. ['projects/my-project'] or "
+                    "['organizations/123456789']. Call `list_scopes` if you do not "
+                    "know the identifier — organizations in particular are addressed "
+                    "by a number the user will not know. Falls back to "
+                    "GOOGLE_CLOUD_SUPPORT_MCP_PARENTS only when omitted."
+                )
+            ),
         ] = None,
         state: Annotated[
             CaseStateFilter | None,
@@ -92,11 +100,12 @@ def register(mcp: FastMCP, settings: Settings, get_clients) -> None:
             str | None, Field(description="Opaque token from a previous next_cursor")
         ] = None,
     ) -> ListEnvelope[CaseSummary]:
-        """Find support cases across every configured project and organization.
+        """Find support cases across the projects and organizations you name.
 
-        Returns results from every scope that answered. A scope that failed is
-        reported in `scopes_failed` with what to do about it — one organization's
-        permission error never hides another organization's cases.
+        Pass `parents` to say which scopes to search; no configuration is needed
+        for that. Results come back from every scope that answered, and a scope
+        that failed is reported in `scopes_failed` with what to do about it — one
+        organization's permission error never hides another organization's cases.
         """
         scopes = parents or settings.parents
         if not scopes:
@@ -104,9 +113,11 @@ def register(mcp: FastMCP, settings: Settings, get_clients) -> None:
                 from_grpc(ValueError("no parents configured")).model_copy(
                     update={
                         "detail": (
-                            "No scopes are configured. Set GOOGLE_CLOUD_SUPPORT_MCP_PARENTS to a JSON "
-                            'list such as ["projects/my-project","organizations/123456789"], '
-                            "or pass `parents` on this call."
+                            "No scope was given. Pass `parents` on this call — for example "
+                            '["projects/my-project"] or ["organizations/123456789"]. Ask the '
+                            "Call `list_scopes` if you do not know the identifier. "
+                            "A default can also be configured with "
+                            "GOOGLE_CLOUD_SUPPORT_MCP_PARENTS, but it is not required."
                         )
                     }
                 )
@@ -174,7 +185,15 @@ def register(mcp: FastMCP, settings: Settings, get_clients) -> None:
     )
     async def create_case(
         ctx: Context,
-        parent: Annotated[str, Field(description="projects/{id} or organizations/{id}")],
+        parent: Annotated[
+            str,
+            Field(
+                description=(
+                    "Where to open the case: projects/{id} or organizations/{id}. "
+                    "Call `list_scopes` if you do not know the identifier."
+                )
+            ),
+        ],
         classification_id: Annotated[
             str, Field(description="An id returned by search_case_classifications")
         ],

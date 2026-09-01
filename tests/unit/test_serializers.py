@@ -1,16 +1,46 @@
 """serializers.py — proto in, declared model out. Nothing raw reaches a client."""
 
+from dataclasses import dataclass
+from dataclasses import field as _field
+
 from google.cloud.support_v2.types import actor, attachment, case, comment
 from google.protobuf import timestamp_pb2
 
 from google_cloud_support_mcp.models import CasePriority, CaseState
-from google_cloud_support_mcp.serializers import (
+
+
+class _FakeState:
+    def __init__(self, name: str = "ACTIVE") -> None:
+        self.name = name
+
+
+@dataclass
+class _FakeProject:
+    """Shape-compatible with resourcemanager_v3.Project for the fields we read."""
+
+    project_id: str = "p"
+    name: str = "projects/000000000000"
+    display_name: str = "Billing"
+    state: object = _field(default_factory=_FakeState)
+
+
+@dataclass
+class _FakeOrg:
+    """Shape-compatible with resourcemanager_v3.Organization."""
+
+    name: str = "organizations/1"
+    display_name: str = "acme.example"
+    state: object = _field(default_factory=_FakeState)
+
+
+from google_cloud_support_mcp.serializers import (  # noqa: E402
     parse_resource_ref,
     to_attachment,
     to_case_detail,
     to_case_summary,
     to_classification,
     to_comment,
+    to_scope_ref,
 )
 
 TS = timestamp_pb2.Timestamp(seconds=1_800_000_000)
@@ -138,3 +168,61 @@ def test_attachment_carries_no_bytes():
 def test_classification():
     c = to_classification(case.CaseClassification(id="100H", display_name="Compute/GKE"))
     assert c.id == "100H"
+
+
+class TestScopeRef:
+    """R-104: the identifier a person recognises, not the one the API prefers.
+
+    `Project.name` is `projects/{project_number}`. It satisfies the parent regex
+    and addresses the right project, so nothing errors — the list is just full of
+    numbers nobody can match against what they were about to type.
+    """
+
+    def test_project_uses_the_id_not_the_number(self):
+        ref = to_scope_ref(
+            _FakeProject(name="projects/123456789012", project_id="my-billing-project")
+        )
+        assert ref.parent == "projects/my-billing-project"
+        assert ref.kind == "project"
+
+    def test_organization_name_passes_through(self):
+        ref = to_scope_ref(_FakeOrg(name="organizations/123456789", display_name="acme.example"))
+        assert ref.parent == "organizations/123456789"
+        assert ref.kind == "organization"
+        assert ref.display_name == "acme.example"
+
+    def test_a_project_without_a_display_name_is_still_nameable(self):
+        """Every row must be something a user can point at, so the id fills in."""
+        ref = to_scope_ref(_FakeProject(project_id="unnamed-project", display_name=""))
+        assert ref.display_name == "unnamed-project"
+
+    def test_state_is_a_name_not_a_number(self):
+        ref = to_scope_ref(_FakeProject(project_id="p", state=_FakeState("DELETE_REQUESTED")))
+        assert ref.state == "DELETE_REQUESTED"
+
+    def test_a_malformed_parent_is_rejected_by_the_model(self):
+        """The unit test above pins what `to_scope_ref` produces today.
+
+        It cannot pin what some future caller constructs by hand, and a ScopeRef
+        whose `parent` the settings validator would reject is a value that looks
+        usable and is not. The model enforces the same shape rather than trusting
+        every construction site to be correct.
+        """
+        import pytest
+        from pydantic import ValidationError
+
+        from google_cloud_support_mcp.models import ScopeRef
+
+        for bad in ("folders/123", "projects/", "my-project", "projects/-leading-dash"):
+            with pytest.raises(ValidationError):
+                ScopeRef(parent=bad, kind="project")
+
+    def test_every_returned_parent_satisfies_the_settings_validator(self):
+        """SC-005: what this returns must be usable as `parents` with no editing."""
+        from google_cloud_support_mcp.settings import _PARENT
+
+        for ref in (
+            to_scope_ref(_FakeProject(project_id="my-proj")),
+            to_scope_ref(_FakeOrg(name="organizations/9")),
+        ):
+            assert _PARENT.match(ref.parent), ref.parent

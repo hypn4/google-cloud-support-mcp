@@ -15,9 +15,10 @@ GetClients = Callable[[], SupportClients]
 
 
 def register_all(mcp: FastMCP, settings: Settings, get_clients: GetClients) -> None:
-    from . import attachments, cases, classifications, comments
+    from . import attachments, cases, classifications, comments, scopes
 
     cases.register(mcp, settings, get_clients)
     classifications.register(mcp, settings, get_clients)
     comments.register(mcp, settings, get_clients)
     attachments.register(mcp, settings, get_clients)
+    scopes.register(mcp, settings, get_clients)

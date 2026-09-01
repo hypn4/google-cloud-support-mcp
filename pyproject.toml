@@ -12,6 +12,7 @@ requires-python = ">=3.14"
 # 전이 의존성(google-auth, pydantic, mcp, grpcio)은 직접 선언하지 않는다.
 dependencies = [
     "fastmcp==4.0.0",
+    "google-cloud-resource-manager==1.18.0",
     "google-cloud-support==0.5.3",
     "httpx==0.28.1",
     "pydantic-settings==2.15.0",

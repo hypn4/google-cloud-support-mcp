@@ -46,6 +46,31 @@ async def _handler(decision: bool):
     return handler
 
 
+class TestReadToolsNeverAsk:
+    """FR-010: `list_scopes` changes nothing, so it must not spend a confirmation.
+
+    `readOnlyHint` is swept elsewhere, but the annotation is advisory — it is a
+    label, not a guarantee. This asserts the behaviour: a client that offers no
+    way to prompt still gets an answer, which is only true if nothing asked.
+    """
+
+    async def test_list_scopes_answers_without_prompting(self, fake_clients):
+        from google_cloud_support_mcp.server import build_server
+
+        asked: list[str] = []
+
+        async def refuse(message, response_type, params, ctx):
+            asked.append(message)
+            raise AssertionError("읽기 도구가 확인을 요구했다")
+
+        server = build_server(Settings(parents=[]), clients=fake_clients)
+        async with Client(server, elicitation_handler=refuse) as client:
+            result = await client.call_tool("list_scopes", {})
+
+        assert asked == []
+        assert result.structured_content["items"]
+
+
 class TestCreateCaseConfirmation:
     async def test_round_one_shows_the_payload_before_sending_anything(self, fake_clients):
         """FR-016: the user sees the exact submission before it exists anywhere."""

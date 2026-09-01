@@ -21,6 +21,7 @@ from .models import (
     Classification,
     Comment,
     ResourceRef,
+    ScopeRef,
 )
 
 __all__ = [
@@ -30,6 +31,7 @@ __all__ = [
     "to_case_summary",
     "to_classification",
     "to_comment",
+    "to_scope_ref",
 ]
 
 _CONSOLE = "https://console.cloud.google.com/support/cases/detail"
@@ -61,6 +63,36 @@ def _enum_name(value: Any, enum_type: type, default: Any) -> Any:
         return enum_type(value.name if hasattr(value, "name") else str(value))
     except ValueError, AttributeError:
         return default
+
+
+def to_scope_ref(source: Any) -> ScopeRef:
+    """Convert a Resource Manager project or organization into a usable scope.
+
+    Which class it is is inferred from the presence of `project_id` rather than
+    from an argument, because the two shapes are otherwise identical for our
+    purposes and a caller passing the wrong flag would be silent.
+    """
+    project_id = getattr(source, "project_id", "") or ""
+    state = getattr(getattr(source, "state", None), "name", "") or ""
+    display_name = getattr(source, "display_name", "") or ""
+
+    if project_id:
+        # Deliberately not `source.name`: that is projects/{project_number}.
+        return ScopeRef(
+            parent=f"projects/{project_id}",
+            kind="project",
+            # A project may have no display name. Falling back to the id keeps
+            # every row nameable instead of showing a blank the user cannot pick.
+            display_name=display_name or project_id,
+            state=state,
+        )
+
+    return ScopeRef(
+        parent=source.name,
+        kind="organization",
+        display_name=display_name,
+        state=state,
+    )
 
 
 def parse_resource_ref(name: str) -> ResourceRef:
