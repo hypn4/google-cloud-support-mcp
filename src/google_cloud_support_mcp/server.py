@@ -17,10 +17,16 @@ from fastmcp.server.middleware.logging import LoggingMiddleware
 from fastmcp.server.middleware.rate_limiting import RateLimitingMiddleware
 from fastmcp.server.middleware.timing import TimingMiddleware
 
-from .auth import CredentialProvider
-from .clients import SupportClients, build_clients
-from .redaction import RedactionMiddleware, install_log_redaction
-from .settings import Settings, get_settings
+# Absolute rather than relative, unlike the rest of the package. The FastMCP CLI
+# loads this file by path with `spec_from_file_location("server_module", ...)` —
+# no parent package — so a relative import here raises `attempted relative import
+# with no known parent package` and `fastmcp inspect`/`run`/`dev` cannot load the
+# server at all. The modules pulled in below are imported as part of the real
+# package, so their own relative imports keep working. See fastmcp.json.
+from google_cloud_support_mcp.auth import CredentialProvider
+from google_cloud_support_mcp.clients import SupportClients, build_clients
+from google_cloud_support_mcp.redaction import RedactionMiddleware, install_log_redaction
+from google_cloud_support_mcp.settings import Settings, get_settings
 
 __all__ = ["build_server", "create_server"]
 
@@ -132,9 +138,9 @@ def build_server(
         ],
     )
 
-    from .prompts import register_prompts
-    from .resources import register_resources
-    from .tools import register_all
+    from google_cloud_support_mcp.prompts import register_prompts
+    from google_cloud_support_mcp.resources import register_resources
+    from google_cloud_support_mcp.tools import register_all
 
     def get_clients() -> SupportClients:
         """Resolve the client bundle for the in-flight request.

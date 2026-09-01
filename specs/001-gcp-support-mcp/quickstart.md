@@ -76,21 +76,31 @@ uv run google-cloud-support-mcp          # stdio (기본)
 ### V1 — 도구 표면 (계약)
 
 ```bash
-uv run fastmcp inspect src/google_cloud_support_mcp/server.py
+uv run fastmcp inspect
 ```
+
+루트의 `fastmcp.json`이 진입점(`server.py:create_server`)을 지정하므로 인자가 필요 없다.
 
 **기대**:
 - 기본 설정에서 **13개** 도구가 보인다. `escalate_case`는 **보이지 않는다** (FR-018 기본 비활성).
 - 읽기 도구 8개에 `readOnlyHint: true`.
 - `close_case`에 `destructiveHint: true`. 구독 관련 도구는 **하나도 보이지 않는다**.
-- 리소스 템플릿 `case://{parent}/{case_id}` 1개, 프롬프트 2개.
+- 리소스 템플릿 `case://{parent_type}/{parent_id}/{case_id}` 1개, 프롬프트 2개.
 
 ```bash
-GOOGLE_CLOUD_SUPPORT_MCP_ENABLE_ESCALATION=true uv run fastmcp inspect src/google_cloud_support_mcp/server.py
+GOOGLE_CLOUD_SUPPORT_MCP_ENABLE_ESCALATION=true uv run fastmcp inspect
 # → 14개 도구, escalate_case에 destructiveHint: true
 
-GOOGLE_CLOUD_SUPPORT_MCP_ENABLE_WRITES=false uv run fastmcp inspect src/google_cloud_support_mcp/server.py
+GOOGLE_CLOUD_SUPPORT_MCP_ENABLE_WRITES=false uv run fastmcp inspect
 # → 8개 도구 (읽기만)
+```
+
+주석 수준의 요약이 아니라 정확한 목록이 필요하면 JSON으로 받는다. **파일로 받아야 한다** —
+`--format`의 stdout 출력은 rich가 80칼럼에서 줄바꿈을 넣어 JSON이 깨진다:
+
+```bash
+uv run fastmcp inspect --format mcp -o /tmp/surface.json
+python3 -c "import json; d=json.load(open('/tmp/surface.json')); print(len(d['tools']))"
 ```
 
 **추적**: FR-018, FR-019 / contracts 체크리스트 1~4번

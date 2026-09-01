@@ -79,7 +79,11 @@ the latest.
 ```bash
 uv sync
 uv run google-cloud-support-mcp        # stdio
+uv run fastmcp inspect                 # tool surface, without starting a session
 ```
+
+`fastmcp.json` points the FastMCP CLI at `server.py:create_server`, so `inspect`,
+`run` and `dev` all work with no arguments.
 
 ```json
 {

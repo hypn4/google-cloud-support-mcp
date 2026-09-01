@@ -159,7 +159,7 @@ round trip (V4) and the attachment cycle (V5).
 
 ```bash
 export GOOGLE_CLOUD_SUPPORT_MCP_PARENTS='["projects/PROJECT_ID"]'
-uv run fastmcp inspect src/google_cloud_support_mcp/server.py   # V1 again, sanity
+uv run fastmcp inspect                            # V1 again, sanity
 # then walk V4 steps 1-7 and V5 in quickstart.md through an MCP client
 ```
 
