@@ -1,0 +1,35 @@
+# Python-generated files
+__pycache__/
+*.py[oc]
+build/
+dist/
+wheels/
+*.egg-info
+
+# Virtual environments
+.venv
+venv/
+
+# Tooling caches
+.pytest_cache/
+.ruff_cache/
+.mypy_cache/
+
+# Local agent/editor tooling — vendored or generated, not project artifacts.
+# .specify/ is deliberately NOT listed: it carries the project constitution
+# (.specify/memory/constitution.md), which governs this repo.
+.claude/
+.codegraph/
+.cursor/
+.aider*
+.idea/
+.vscode/
+
+# Secrets
+.env
+.env.*
+
+# OS
+.DS_Store
+Thumbs.db
+*.swp
