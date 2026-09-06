@@ -150,6 +150,104 @@ class TestAttachmentMedia:
         assert Path(result.structured_content["local_path"]).name != "diag.log"
         assert (tmp_path / "diag.log").read_bytes() == b"pre-existing"
 
+    @pytest.mark.parametrize(
+        "hostile",
+        [
+            "/etc/passwd",
+            "../../../etc/passwd",
+            "..\\..\\evil.exe",
+            "..",
+            "evil\x00.log",
+        ],
+    )
+    async def test_a_hostile_server_filename_cannot_escape_the_download_dir(
+        self, fake_clients, tmp_path, respx_mock, hostile
+    ):
+        """The filename is Google's, not ours, and it is joined to a local path.
+
+        `safe_filename` is unit-tested directly; this asserts that the download
+        tool actually calls it. Without the guard, "/etc/passwd" would discard
+        `download_dir` entirely — joining an absolute path replaces the base.
+        """
+        from tests.conftest import make_attachment
+
+        fake_clients.attachments.attachments = [make_attachment(filename=hostile)]
+        respx_mock.get(
+            "https://cloudsupport.googleapis.com/v2/projects/p/cases/1/attachments/1:download"
+        ).respond(200, content=b"payload")
+
+        downloads = tmp_path / "downloads"
+        server = _server(fake_clients, download_dir=downloads)
+        async with Client(server) as client:
+            result = await client.call_tool(
+                "download_attachment",
+                {"attachment_name": "projects/p/cases/1/attachments/1"},
+            )
+
+        written = Path(result.structured_content["local_path"])
+        assert written.parent == downloads.resolve()
+        assert written.read_bytes() == b"payload"
+        # Nothing was created beside the download directory.
+        assert sorted(q.name for q in tmp_path.iterdir()) == ["downloads"]
+
+    async def test_a_hostile_filename_cannot_overwrite_a_sibling_file(
+        self, fake_clients, tmp_path, respx_mock
+    ):
+        """The traversal that would actually hurt: reaching back out one level."""
+        from tests.conftest import make_attachment
+
+        downloads = tmp_path / "downloads"
+        downloads.mkdir()
+        secret = tmp_path / "secret.txt"
+        secret.write_bytes(b"original")
+
+        fake_clients.attachments.attachments = [make_attachment(filename="../secret.txt")]
+        respx_mock.get(
+            "https://cloudsupport.googleapis.com/v2/projects/p/cases/1/attachments/1:download"
+        ).respond(200, content=b"overwritten")
+
+        server = _server(fake_clients, download_dir=downloads)
+        async with Client(server) as client:
+            await client.call_tool(
+                "download_attachment",
+                {"attachment_name": "projects/p/cases/1/attachments/1"},
+            )
+
+        assert secret.read_bytes() == b"original"
+        assert (downloads / "secret.txt").read_bytes() == b"overwritten"
+
+    async def test_a_local_write_failure_is_a_tool_error_not_a_raw_oserror(
+        self, fake_clients, tmp_path, respx_mock, monkeypatch
+    ):
+        """The local write sits outside the block that classifies Google's failures.
+
+        Left unguarded it escaped as a raw OSError. The failure is injected
+        rather than provoked with a read-only directory, because that trick does
+        nothing when the suite runs as root — as it does in some CI images.
+        """
+        respx_mock.get(
+            "https://cloudsupport.googleapis.com/v2/projects/p/cases/1/attachments/1:download"
+        ).respond(200, content=b"payload")
+
+        def full_disk(self, data):
+            raise OSError(28, "No space left on device")
+
+        monkeypatch.setattr(Path, "write_bytes", full_disk)
+
+        server = _server(fake_clients, download_dir=tmp_path)
+        async with Client(server) as client:
+            with pytest.raises(MCPError) as excinfo:
+                await client.call_tool(
+                    "download_attachment",
+                    {"attachment_name": "projects/p/cases/1/attachments/1"},
+                )
+
+        message = str(excinfo.value)
+        assert "invalid_argument" in message
+        # The message must name the cause and the path, not just fail.
+        assert "No space left on device" in message
+        assert "diag.log" in message
+
     async def test_upload_is_size_checked_before_asking(self, fake_clients, tmp_path):
         big = tmp_path / "huge.bin"
         big.write_bytes(b"x" * 2048)
