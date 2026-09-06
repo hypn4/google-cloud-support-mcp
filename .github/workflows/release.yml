@@ -212,7 +212,15 @@ jobs:
 
       - name: Generate changelog
         id: changelog
-        uses: orhun/git-cliff-action@v4
+        # Pinned to a SHA, unlike the actions/* steps above. These two are the
+        # only third-party actions here, and they run in the one job holding
+        # contents: write on a repository that publishes to PyPI via Trusted
+        # Publishing — so a moved `v4`/`v3` tag would execute someone else's
+        # code with permission to rewrite releases. actions/* is GitHub-owned
+        # and setup-uv is already at an exact patch, so the line is drawn at
+        # third-party rather than everywhere. The trailing version comment is
+        # what Dependabot reads to keep the pin current.
+        uses: orhun/git-cliff-action@3d96a18cc4ec17e9dc69ddcc424ccafaf1f78ce2 # v4.9.0
         # Deferred, not swallowed. PyPI has already published by this point and
         # git-cliff panics rather than degrading when the GitHub API 404s or
         # rate-limits, so stopping here would leave the package on PyPI with no
@@ -232,7 +240,7 @@ jobs:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
 
       - name: Publish release
-        uses: softprops/action-gh-release@v3
+        uses: softprops/action-gh-release@efb35369e0ad2afab669f228072c1b0d510eae64 # v3.0.3
         with:
           # Explicit because a manual re-run is not triggered by the tag itself.
           tag_name: ${{ env.RELEASE_TAG }}
@@ -245,39 +253,32 @@ jobs:
           # so the release is never published with an empty body. The
           # substitution is reported as a failure by the next step.
           generate_release_notes: ${{ steps.changelog.outcome != 'success' }}
+          # Only what is specific to this release lives here; everything else
+          # links to the README. Setup instructions used to be inlined, and in
+          # v0.2.2 they drifted: that release existed to remove two environment
+          # variables from the README, and shipped notes still recommending
+          # them. Two copies, one edit. So do not paste the client config back
+          # in — add it to the README instead, which is also the PyPI page.
+          #
+          # The link is pinned to the tag, not main, so an old release keeps
+          # pointing at the README as it stood then. No `#install-and-run`
+          # fragment: GitHub prefixes heading anchors with `user-content-` on
+          # blob pages and the jump relies on its own JS, so the section is
+          # named in prose instead.
           body: |
             ${{ steps.changelog.outputs.content }}
 
             ## Install
 
-            Run it without cloning anything:
-
-            ```bash
-            uvx google-cloud-support-mcp
-            ```
-
-            Or pin this exact release:
+            Pin this exact release:
 
             ```bash
             uvx google-cloud-support-mcp@${{ needs.verify.outputs.released }}
             ```
 
-            MCP client configuration:
-
-            ```json
-            {
-              "mcpServers": {
-                "google-cloud-support": {
-                  "command": "uvx",
-                  "args": ["google-cloud-support-mcp"],
-                  "env": {
-                    "GOOGLE_CLOUD_SUPPORT_MCP_PARENTS": "[\"projects/my-project\"]",
-                    "GOOGLE_CLOUD_SUPPORT_MCP_QUOTA_PROJECT": "my-project"
-                  }
-                }
-              }
-            }
-            ```
+            Setup, MCP client configuration and examples are in the
+            [README](https://github.com/${{ github.repository }}/blob/${{ env.RELEASE_TAG }}/README.md)
+            under "Install and run".
 
       - name: Fail if the changelog was not generated
         # The release exists and PyPI is published — neither is rolled back.
