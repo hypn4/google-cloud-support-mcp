@@ -13,6 +13,7 @@ mint a bearer token and httpx does the transport.
 
 from __future__ import annotations
 
+import asyncio
 import json
 from pathlib import Path
 
@@ -157,8 +158,13 @@ async def download_attachment_bytes(
     # Outside the block above on purpose: that one classifies *Google's* failures,
     # and a local disk error is not one. Left unguarded, ENOSPC or an unwritable
     # destination_dir escaped as a raw OSError rather than a tool error.
+    #
+    # In a thread because this is the whole attachment: a synchronous write here
+    # stalls the event loop for as long as the disk takes, and this server runs
+    # concurrent scope fan-out beside it. The write is what moves the bytes, so
+    # it is the one that matters, not the stat calls around it.
     try:
-        destination.write_bytes(response.content)
+        await asyncio.to_thread(destination.write_bytes, response.content)
     except OSError as exc:
         raise to_tool_error(
             custom(
@@ -180,9 +186,22 @@ async def upload_attachment_file(clients, case_name: str, path: Path, filename: 
     """
     headers = await clients.credentials.bearer_headers()
     metadata = json.dumps({"attachment": {"filename": filename}})
+    # In a thread for the same reason as the download write, and read before the
+    # request is built rather than inline in the dict: a file that vanished
+    # between the confirmation and here is now a classified error instead of a
+    # raw OSError, and it is reported without a wasted round trip to Google.
+    try:
+        content = await asyncio.to_thread(path.read_bytes)
+    except OSError as exc:
+        raise to_tool_error(
+            custom(
+                ErrorKind.INVALID_ARGUMENT,
+                f"Could not read {path}: {exc.strerror or exc}. Nothing was sent.",
+            )
+        ) from exc
     files = {
         "metadata": (None, metadata, "application/json"),
-        "file": (filename, path.read_bytes(), "application/octet-stream"),
+        "file": (filename, content, "application/octet-stream"),
     }
     try:
         response = await clients.http.post(

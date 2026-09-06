@@ -2,6 +2,7 @@
 
 from __future__ import annotations
 
+import asyncio
 from pathlib import Path
 
 from fastmcp import Context, FastMCP
@@ -16,6 +17,18 @@ from ..serializers import to_attachment
 from ..settings import Settings
 
 __all__ = ["register"]
+
+
+def _probe_source(file_path: str) -> tuple[Path, bool, int]:
+    """Resolve and stat an upload source, off the event loop.
+
+    Sync on purpose: the caller hands the whole thing to a worker thread, so
+    every filesystem call here is already off the loop and none needs its own.
+    """
+    source = Path(file_path).expanduser()
+    if not source.is_file():
+        return source, False, 0
+    return source, True, source.stat().st_size
 
 
 def register(mcp: FastMCP, settings: Settings, get_clients) -> None:
@@ -125,12 +138,14 @@ def register(mcp: FastMCP, settings: Settings, get_clients) -> None:
         filename: str | None = None,
     ) -> Attachment | InputRequiredResult:
         """Attach a local file to a case, after confirming what will be sent."""
-        source = Path(file_path).expanduser()
-        if not source.is_file():
+        # One hop for all three probes rather than three. Each is microseconds,
+        # so the point is not their cost — it is that a thread hop is itself
+        # ~100µs, and doing it per call would cost more than the syscalls do.
+        source, is_file, size = await asyncio.to_thread(_probe_source, file_path)
+        if not is_file:
             raise to_tool_error(
                 custom(ErrorKind.INVALID_ARGUMENT, f"No such file: {file_path}. Nothing was sent.")
             )
-        size = source.stat().st_size
         if size > settings.max_upload_bytes:
             raise to_tool_error(
                 custom(

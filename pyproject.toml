@@ -60,8 +60,18 @@ target-version = "py314"
 src = ["src", "tests"]
 
 [tool.ruff.lint]
-select = ["E", "F", "I", "UP", "B", "SIM", "RUF"]
+# ASYNC earns its place here: blocking file I/O inside an async def is invisible
+# in review and in tests — nothing fails, the event loop just stalls while a
+# 10 MB attachment moves, alongside the concurrent scope fan-out. A linter
+# notices it every time; a reader does not.
+select = ["E", "F", "I", "UP", "B", "SIM", "RUF", "ASYNC"]
 ignore = ["E501"]
+
+[tool.ruff.lint.per-file-ignores]
+# Test bodies assert against the filesystem on purpose. There is no loop to
+# starve when the only other task is the test itself, and rewriting the
+# assertions around thread hops would obscure what they check.
+"tests/**" = ["ASYNC240"]
 
 [tool.ruff.lint.isort]
 known-first-party = ["google_cloud_support_mcp"]

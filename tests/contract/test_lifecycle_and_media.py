@@ -2,6 +2,7 @@
 
 from __future__ import annotations
 
+import threading
 from pathlib import Path
 
 import pytest
@@ -247,6 +248,98 @@ class TestAttachmentMedia:
         # The message must name the cause and the path, not just fail.
         assert "No space left on device" in message
         assert "diag.log" in message
+
+    async def test_the_download_write_does_not_run_on_the_event_loop(
+        self, fake_clients, tmp_path, respx_mock, monkeypatch
+    ):
+        """Attachment bytes move in a worker thread, not on the loop.
+
+        Asserted by thread identity rather than by timing: a "did it stay
+        responsive" test measures the scheduler and goes flaky in CI, while the
+        thread the write runs on is exactly the property that matters and is
+        the same on every machine.
+        """
+        respx_mock.get(
+            "https://cloudsupport.googleapis.com/v2/projects/p/cases/1/attachments/1:download"
+        ).respond(200, content=b"payload")
+
+        wrote_on: list[int] = []
+        real = Path.write_bytes
+
+        def record(self, data):
+            wrote_on.append(threading.get_ident())
+            return real(self, data)
+
+        monkeypatch.setattr(Path, "write_bytes", record)
+
+        server = _server(fake_clients, download_dir=tmp_path)
+        async with Client(server) as client:
+            await client.call_tool(
+                "download_attachment",
+                {"attachment_name": "projects/p/cases/1/attachments/1"},
+            )
+
+        assert wrote_on, "write_bytes was never called"
+        assert wrote_on[0] != threading.get_ident()
+
+    async def test_the_upload_read_does_not_run_on_the_event_loop(
+        self, fake_clients, tmp_path, respx_mock, monkeypatch
+    ):
+        source = tmp_path / "diag.log"
+        source.write_bytes(b"payload")
+        respx_mock.post(
+            "https://cloudsupport.googleapis.com/upload/v2/projects/p/cases/1/attachments"
+        ).respond(200, json={"name": "projects/p/cases/1/attachments/9", "filename": "diag.log"})
+
+        read_on: list[int] = []
+        real = Path.read_bytes
+
+        def record(self):
+            read_on.append(threading.get_ident())
+            return real(self)
+
+        monkeypatch.setattr(Path, "read_bytes", record)
+
+        server = _server(fake_clients, download_dir=tmp_path)
+        async with Client(server, elicitation_handler=_approve) as client:
+            await client.call_tool(
+                "upload_attachment", {"case_name": CASE, "file_path": str(source)}
+            )
+
+        assert read_on, "read_bytes was never called"
+        assert read_on[0] != threading.get_ident()
+
+    async def test_an_unreadable_upload_source_is_classified_not_raw(
+        self, fake_clients, tmp_path, respx_mock, monkeypatch
+    ):
+        """A file that vanishes between confirmation and send is a tool error.
+
+        It is also reported without a round trip to Google, because the read now
+        happens before the request is built rather than inline in its body.
+        """
+        source = tmp_path / "diag.log"
+        source.write_bytes(b"payload")
+        route = respx_mock.post(
+            "https://cloudsupport.googleapis.com/upload/v2/projects/p/cases/1/attachments"
+        ).respond(200, json={"name": "projects/p/cases/1/attachments/9"})
+
+        def vanished(self):
+            raise OSError(2, "No such file or directory")
+
+        monkeypatch.setattr(Path, "read_bytes", vanished)
+
+        server = _server(fake_clients, download_dir=tmp_path)
+        async with Client(server, elicitation_handler=_approve) as client:
+            with pytest.raises(MCPError) as excinfo:
+                await client.call_tool(
+                    "upload_attachment", {"case_name": CASE, "file_path": str(source)}
+                )
+
+        message = str(excinfo.value)
+        assert "invalid_argument" in message
+        assert "No such file or directory" in message
+        assert "Nothing was sent" in message
+        assert not route.called, "nothing should have been sent to Google"
 
     async def test_upload_is_size_checked_before_asking(self, fake_clients, tmp_path):
         big = tmp_path / "huge.bin"
