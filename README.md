@@ -12,7 +12,9 @@ conversation.
 ## What it covers
 
 Fifteen tools over the Cloud Support API v2 — cases, comments, attachments, and
-problem classifications, plus scope discovery:
+problem classifications, plus scope discovery. Fourteen are exposed by default;
+`escalate_case` stays hidden until you turn it on, so `fastmcp inspect` reporting
+14 is correct, not a missing tool:
 
 | Group | Tools |
 |-------|-------|
@@ -68,31 +70,38 @@ they are addressed by a number nobody remembers.
 
 ## Install and run
 
-Nothing to clone or install — `uvx` fetches the published package and runs it:
+Nothing to clone or install — `uvx` fetches the published package and runs it.
+
+**Register it with an MCP client (recommended).** This is how you actually use
+the server: run by hand it just sits on stdio waiting for a client to speak to
+it.
+
+Claude Code:
 
 ```bash
-uvx google-cloud-support-mcp
+claude mcp add google-cloud-support -- uvx google-cloud-support-mcp
 ```
 
-Register it with an MCP client:
+Or, for any client that takes JSON:
 
 ```json
 {
   "mcpServers": {
     "google-cloud-support": {
       "command": "uvx",
-      "args": ["google-cloud-support-mcp"],
-      "env": {
-        "GOOGLE_CLOUD_SUPPORT_MCP_PARENTS": "[\"projects/my-project\",\"organizations/123456789\"]",
-        "GOOGLE_CLOUD_SUPPORT_MCP_QUOTA_PROJECT": "my-project"
-      }
+      "args": ["google-cloud-support-mcp"]
     }
   }
 }
 ```
 
-Pin a release with `uvx google-cloud-support-mcp@0.1.0` if you would rather not
-track the latest.
+That is the whole configuration. **No environment variables are required** —
+scopes are named in the conversation, not set up in advance, and everything in
+[Configuration](#configuration) is optional.
+
+To check it starts before registering, run `uvx google-cloud-support-mcp`; it
+will wait on stdio, which is what a working server does. Pin a release with
+`uvx google-cloud-support-mcp@0.2.1` if you would rather not track the latest.
 
 ### From a clone
 
@@ -110,25 +119,61 @@ uv run fastmcp inspect                 # tool surface, without starting a sessio
   "mcpServers": {
     "google-cloud-support": {
       "command": "uv",
-      "args": ["run", "--directory", "/path/to/google-cloud-support-mcp", "google-cloud-support-mcp"],
-      "env": {
-        "GOOGLE_CLOUD_SUPPORT_MCP_PARENTS": "[\"projects/my-project\",\"organizations/123456789\"]",
-        "GOOGLE_CLOUD_SUPPORT_MCP_QUOTA_PROJECT": "my-project"
-      }
+      "args": ["run", "--directory", "/path/to/google-cloud-support-mcp", "google-cloud-support-mcp"]
     }
   }
 }
 ```
 
+## Examples
+
+Registered and authenticated, you can just ask. No scope needs configuring first.
+
+### Catching up
+
+> "Which support cases are open in my-billing-project?"
+
+> "Show me case 12345678 and what Google last said on it."
+
+> "Anything touched in the last three days across my-billing-project and organizations/123456789?"
+
+`search_cases` narrows by state, priority or time and queries every scope you
+name at once; `list_comments` marks each message with `author_side`, so you can
+see who said what. "Touched" is deliberate — see the note below.
+
+### When you only know a scope by name
+
+> "What is the org id for Acme? List its P1 and P2 cases."
+
+`list_scopes` turns the name into the number nobody remembers, then
+`search_cases` uses it. This is the one thing here that needs the Cloud Resource
+Manager API from [Prerequisites](#prerequisites) step 4.
+
+### Anything that reaches Google
+
+> "Reply on case 12345678 that we rotated the key."
+
+> "Open a P3 case about slow Cloud SQL reads in my-billing-project."
+
+You are shown the exact payload first, and nothing is sent until you approve it.
+Opening a case needs a problem classification, so `search_case_classifications`
+runs first to find a valid id.
+
+One thing to know: `updated_after` filters on **update time** — *touched* since
+then, not *opened* since then. A case opened months ago and commented on
+yesterday matches. The v2 query grammar has no `create_time` filter at all.
+
 ## Configuration
 
-All variables take the `GOOGLE_CLOUD_SUPPORT_MCP_` prefix.
+All variables take the `GOOGLE_CLOUD_SUPPORT_MCP_` prefix. None are required;
+set one by adding an `env` block to the client entry above, or by exporting it
+into the server's environment.
 
 | Variable | Default | What it does |
 |----------|---------|--------------|
 | `PARENTS` | `[]` | **Optional default.** Used only when a request names no scope. You can name a project or organization in the conversation instead — `list_scopes` finds the identifier. Validated at start-up. |
 | `QUOTA_PROJECT` | — | Billing/quota project. Organization-level calls with user credentials generally need this. |
-| `ENABLE_WRITES` | `true` | `false` leaves only the eight read tools. |
+| `ENABLE_WRITES` | `true` | `false` leaves only the nine read tools. |
 | `ENABLE_ESCALATION` | **`false`** | Escalation is hidden unless you turn it on. See below. |
 | `DOWNLOAD_DIR` | system temp | Where `download_attachment` writes files. |
 | `MAX_UPLOAD_BYTES` | `10000000` | Client-side check before an upload is offered. |
