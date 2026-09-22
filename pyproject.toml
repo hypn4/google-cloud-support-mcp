@@ -11,7 +11,7 @@ requires-python = ">=3.14"
 # 헌법 원칙 IV: 정확한 값으로 고정. 2026-09-01 PyPI 확인 (T001).
 # 전이 의존성(google-auth, pydantic, mcp, grpcio)은 직접 선언하지 않는다.
 dependencies = [
-    "fastmcp==4.0.0",
+    "fastmcp==4.0.5",
     "google-cloud-resource-manager==1.18.0",
     "google-cloud-support==0.5.3",
     "httpx==0.28.1",
