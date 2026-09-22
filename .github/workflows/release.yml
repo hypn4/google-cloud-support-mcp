@@ -220,7 +220,7 @@ jobs:
         # and setup-uv is already at an exact patch, so the line is drawn at
         # third-party rather than everywhere. The trailing version comment is
         # what Dependabot reads to keep the pin current.
-        uses: orhun/git-cliff-action@3d96a18cc4ec17e9dc69ddcc424ccafaf1f78ce2 # v4.9.0
+        uses: orhun/git-cliff-action@a9a95522b26fe6403f7bb24031f21fb573d0f5ff # v4.9.1
         # Deferred, not swallowed. PyPI has already published by this point and
         # git-cliff panics rather than degrading when the GitHub API 404s or
         # rate-limits, so stopping here would leave the package on PyPI with no
