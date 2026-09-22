@@ -37,7 +37,7 @@ dev = [
 # Pinned exactly so a release built today and one built next month produce the
 # same artifact. Verified against PyPI 2026-09-01; uv-dynamic-versioning 0.14.1
 # constrains hatchling to ~=1.28, which 1.32.0 satisfies.
-requires = ["hatchling==1.32.0", "uv-dynamic-versioning==0.14.1"]
+requires = ["hatchling==1.32.3", "uv-dynamic-versioning==0.14.1"]
 build-backend = "hatchling.build"
 
 [tool.hatch.version]
