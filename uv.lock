@@ -497,7 +497,7 @@ wheels = [
 
 [[package]]
 name = "google-cloud-support"
-version = "0.5.3"
+version = "0.5.4"
 source = { registry = "https://pypi.org/simple" }
 dependencies = [
     { name = "google-api-core", extra = ["grpc"] },
@@ -506,9 +506,9 @@ dependencies = [
     { name = "proto-plus" },
     { name = "protobuf" },
 ]
-sdist = { url = "https://files.pythonhosted.org/packages/58/ed/4718410fdba2aab7ac5aa759cb0f4deada09f0db47a659b763f274142ab1/google_cloud_support-0.5.3.tar.gz", hash = "sha256:fc8adbf8f237d8c38f12eaf3ad6f2c1ebf269e4d14ef07c8d917c34e5c62a323", size = 457868, upload-time = "2026-08-25T19:19:06.946Z" }
+sdist = { url = "https://files.pythonhosted.org/packages/ba/e8/7ecad4c30cd81f10dfab9d36b53e60f7943571d7c84b3cbd84a8707280fc/google_cloud_support-0.5.4.tar.gz", hash = "sha256:252e0ab7e688f583128a6b9ba848a27d3cf7418d1870a8fefd6465ca830266b5", size = 434696, upload-time = "2026-10-01T18:18:25.493Z" }
 wheels = [
-    { url = "https://files.pythonhosted.org/packages/87/6c/69c0bf3e7e09296ce5a264d90dc4fc209ac3e4958b4268ddcf43388ac9ca/google_cloud_support-0.5.3-py3-none-any.whl", hash = "sha256:cc66764a7c8f4871bd1c69bc52cdd602347d3f261fd0e1f483c5abf35c454b0d", size = 445628, upload-time = "2026-08-25T19:18:00.864Z" },
+    { url = "https://files.pythonhosted.org/packages/90/b3/aeaef875efdf1ca25016647947829821261121ab3fc8fa66b872138162f0/google_cloud_support-0.5.4-py3-none-any.whl", hash = "sha256:b12ce7211d5bd5ef8826a874de2f7c70a78003348b9fbae2f1938c309a15c066", size = 437297, upload-time = "2026-10-01T18:12:37.804Z" },
 ]
 
 [[package]]
@@ -534,7 +534,7 @@ dev = [
 requires-dist = [
     { name = "fastmcp", specifier = "==4.0.0" },
     { name = "google-cloud-resource-manager", specifier = "==1.18.0" },
-    { name = "google-cloud-support", specifier = "==0.5.3" },
+    { name = "google-cloud-support", specifier = "==0.5.4" },
     { name = "httpx", specifier = "==0.28.1" },
     { name = "pydantic-settings", specifier = "==2.15.0" },
 ]
